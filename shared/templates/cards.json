@@ -13,11 +13,20 @@
         "skillId": "skill_blaze_enter",
         "name": "Battle Cry",
         "trigger": "on_enter",
-        "effects": [
-          { "effect": "buff_atk", "value": 2, "target": "ally_all" }
-        ]
+        "effects": [{ "effect": "buff_atk", "value": 2, "target": "ally_all" }]
       }
     ]
+  },
+  {
+    "cardId": "hero_blue_001",
+    "name": "Frost Warden",
+    "faction": "blue",
+    "rarity": "legendary",
+    "type": "hero",
+    "description": "A stoic guardian of the frozen north who commands a vast army.",
+    "baseStats": { "hp": 18, "attack": 3, "cooldown": 0 },
+    "deckLimit": 9,
+    "skills": []
   },
   {
     "cardId": "creature_red_001",
@@ -32,11 +41,19 @@
         "skillId": "skill_imp_attack",
         "name": "Singe",
         "trigger": "on_attack",
-        "effects": [
-          { "effect": "status_burn", "value": 1, "target": "enemy_front" }
-        ]
+        "effects": [{ "effect": "status_burn", "value": 1, "target": "enemy_front" }]
       }
     ]
+  },
+  {
+    "cardId": "creature_red_002",
+    "name": "Shadow Blade",
+    "faction": "red",
+    "rarity": "rare",
+    "type": "creature",
+    "description": "Strikes from the darkness before the enemy can react.",
+    "baseStats": { "hp": 3, "attack": 6, "cooldown": 0 },
+    "skills": []
   },
   {
     "cardId": "creature_blue_001",
@@ -51,11 +68,36 @@
         "skillId": "skill_frost_attack",
         "name": "Chill Shot",
         "trigger": "on_attack",
-        "effects": [
-          { "effect": "status_freeze", "value": 1, "target": "enemy_front" }
-        ]
+        "effects": [{ "effect": "status_freeze", "value": 1, "target": "enemy_front" }]
       }
     ]
+  },
+  {
+    "cardId": "creature_blue_002",
+    "name": "Venom Stalker",
+    "faction": "blue",
+    "rarity": "uncommon",
+    "type": "creature",
+    "description": "Its bite leaves a lasting poison in the wound.",
+    "baseStats": { "hp": 5, "attack": 2, "cooldown": 1 },
+    "skills": [
+      {
+        "skillId": "skill_venom_attack",
+        "name": "Toxic Bite",
+        "trigger": "on_attack",
+        "effects": [{ "effect": "status_poison", "value": 2, "target": "enemy_front" }]
+      }
+    ]
+  },
+  {
+    "cardId": "creature_green_001",
+    "name": "Iron Golem",
+    "faction": "green",
+    "rarity": "rare",
+    "type": "creature",
+    "description": "A slow but nearly indestructible war machine.",
+    "baseStats": { "hp": 14, "attack": 2, "cooldown": 2 },
+    "skills": []
   },
   {
     "cardId": "artifact_neutral_001",
@@ -65,6 +107,16 @@
     "type": "artifact",
     "description": "A sturdy shield that absorbs damage.",
     "baseStats": { "hpBonus": 5, "attackBonus": 0, "cooldown": 1 },
+    "skills": []
+  },
+  {
+    "cardId": "artifact_neutral_002",
+    "name": "Power Gem",
+    "faction": "neutral",
+    "rarity": "rare",
+    "type": "artifact",
+    "description": "Infuses its bearer with raw offensive energy.",
+    "baseStats": { "hpBonus": 0, "attackBonus": 3, "cooldown": 1 },
     "skills": []
   },
   {
@@ -80,9 +132,24 @@
         "skillId": "skill_fireball",
         "name": "Fireball",
         "trigger": "on_spell_cast",
-        "effects": [
-          { "effect": "damage", "value": 5, "target": "enemy_front" }
-        ]
+        "effects": [{ "effect": "damage", "value": 5, "target": "enemy_front" }]
+      }
+    ]
+  },
+  {
+    "cardId": "spell_blue_001",
+    "name": "Healing Rain",
+    "faction": "blue",
+    "rarity": "rare",
+    "type": "spell",
+    "description": "A soothing rain that mends the wounds of all allies.",
+    "cooldown": 2,
+    "skills": [
+      {
+        "skillId": "skill_healing_rain",
+        "name": "Healing Rain",
+        "trigger": "on_spell_cast",
+        "effects": [{ "effect": "heal", "value": 3, "target": "ally_all" }]
       }
     ]
   }

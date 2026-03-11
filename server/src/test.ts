@@ -10,27 +10,33 @@ const engine = new GameEngine(cardTemplates);
 // ─── Deck Setup ───────────────────────────────────────────────────────────────
 // hero_red_001 has deckLimit: 5 → 1 hero + 5 cards = 6 total
 
+// Player1: Frost Warden (hero_blue_001, deckLimit:9) — full 10-card deck
 const deck1: DeckDefinition = {
   ownerId: 'Player1',
-  heroCardId: 'hero_red_001',
+  heroCardId: 'hero_blue_001',
   cardIds: [
-    'creature_red_001',   // Fire Imp  (5hp 3atk cd1)
-    'creature_red_001',
-    'creature_red_001',
-    'artifact_neutral_001', // Iron Shield (+5hp cd1)
-    'spell_red_001',        // Fireball (cd2)
+    'creature_red_001',     // Fire Imp      (5hp  3atk cd1)
+    'creature_red_002',     // Shadow Blade  (3hp  6atk cd0) ← fast!
+    'creature_blue_001',    // Frost Archer  (4hp  2atk cd1)
+    'creature_blue_002',    // Venom Stalker (5hp  2atk cd1)
+    'creature_green_001',   // Iron Golem    (14hp 2atk cd2) ← slow tank
+    'artifact_neutral_001', // Iron Shield   (+5hp cd1)
+    'artifact_neutral_002', // Power Gem     (+3atk cd1)
+    'spell_red_001',        // Fireball      (cd2)
+    'spell_blue_001',       // Healing Rain  (cd2)
   ],
 };
 
+// Player2: Blaze Commander (hero_red_001, deckLimit:5) — focused aggro deck
 const deck2: DeckDefinition = {
   ownerId: 'Player2',
   heroCardId: 'hero_red_001',
   cardIds: [
-    'creature_blue_001',  // Frost Archer (4hp 2atk cd1)
-    'creature_blue_001',
-    'creature_blue_001',
-    'artifact_neutral_001',
-    'spell_red_001',
+    'creature_red_001',     // Fire Imp
+    'creature_red_002',     // Shadow Blade
+    'creature_green_001',   // Iron Golem
+    'artifact_neutral_002', // Power Gem
+    'spell_red_001',        // Fireball
   ],
 };
 

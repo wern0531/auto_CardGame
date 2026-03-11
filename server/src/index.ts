@@ -65,11 +65,11 @@ io.on('connection', (socket) => {
 
     const cpuDeck: DeckDefinition = {
       ownerId: 'CPU_Boss',
-      heroCardId: 'hero_red_001',
+      heroCardId: 'hero_red_001',  // deckLimit: 5
       cardIds: [
         'creature_red_001',
-        'creature_red_001',
-        'creature_blue_001',
+        'creature_red_002',
+        'creature_green_001',
         'artifact_neutral_001',
         'spell_red_001',
       ],
@@ -90,12 +90,16 @@ io.on('connection', (socket) => {
 
     const defenderDeck: DeckDefinition = {
       ownerId: 'Arena_Defender',
-      heroCardId: 'hero_red_001',
+      heroCardId: 'hero_blue_001',  // deckLimit: 9
       cardIds: [
         'creature_blue_001',
-        'creature_blue_001',
-        'creature_red_001',
+        'creature_blue_002',
+        'creature_blue_002',
+        'creature_green_001',
+        'creature_red_002',
         'artifact_neutral_001',
+        'artifact_neutral_002',
+        'spell_blue_001',
         'spell_red_001',
       ],
     };

@@ -30,16 +30,20 @@ import type { DeckDefinition } from '@auto-battle/shared';
 const store   = useBattleStore();
 const loading = ref(false);
 
-// Test deck – in a real game this would come from deck builder
+// Test deck – hero_blue_001 has deckLimit:9 → 1 hero + 9 cards = 10 total
 const myDeck: DeckDefinition = {
   ownerId: 'Player1',
-  heroCardId: 'hero_red_001',
+  heroCardId: 'hero_blue_001',
   cardIds: [
-    'creature_red_001',
-    'creature_red_001',
-    'creature_blue_001',
-    'artifact_neutral_001',
-    'spell_red_001',
+    'creature_red_001',     // Fire Imp
+    'creature_red_002',     // Shadow Blade (cd0, fast deploy)
+    'creature_blue_001',    // Frost Archer
+    'creature_blue_002',    // Venom Stalker
+    'creature_green_001',   // Iron Golem (tank)
+    'artifact_neutral_001', // Iron Shield
+    'artifact_neutral_002', // Power Gem
+    'spell_red_001',        // Fireball
+    'spell_blue_001',       // Healing Rain
   ],
 };
 

@@ -126,11 +126,19 @@ export class GameEngine {
       return buildInstance(template, deck.ownerId);
     });
 
+    // Hero stays at index 0 (always drawn first); shuffle the rest (Fisher-Yates)
+    const hero = instances[0];
+    const rest  = instances.slice(1);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+
     return {
       playerId:    deck.ownerId,
       displayName: deck.ownerId,
       hp:          30,
-      deck:        instances,
+      deck:        [hero, ...rest],
       hand:        [],
       field:       [],
       graveyard:   [],

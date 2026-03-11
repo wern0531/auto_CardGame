@@ -6,8 +6,19 @@
       <div class="player-bar">
         <span class="player-name">{{ enemyId ?? '—' }}</span>
         <span class="player-hp">❤ {{ enemyPlayer?.hp ?? 0 }}</span>
-        <span class="hand-badge">Hand: {{ enemyPlayer?.hand.length ?? 0 }}</span>
         <span class="grave-badge">⚰ {{ enemyPlayer?.graveyard.length ?? 0 }}</span>
+      </div>
+
+      <!-- Enemy hand: face-down card backs -->
+      <div class="enemy-hand">
+        <div
+          v-for="i in (enemyPlayer?.hand.length ?? 0)"
+          :key="i"
+          class="card-back"
+        >
+          <span class="card-back__icon">⚔</span>
+        </div>
+        <span v-if="!enemyPlayer?.hand.length" class="hand-empty">—</span>
       </div>
 
       <!-- enemy field: pushed to bottom of zone via margin-top:auto -->
@@ -244,6 +255,44 @@ function logClass(entry: BattleLogEntry) {
 
 .hand-card  { opacity: .8; transform: scale(.88); transform-origin: bottom center; }
 .hand-empty { font-size: 11px; color: #4b5563; }
+
+/* ── Enemy hand (card backs) ─────────────────────────────────────────────── */
+.enemy-hand {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.card-back {
+  position: relative;
+  min-width: 46px;
+  width: 46px;
+  height: 64px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  overflow: hidden;
+}
+
+/* subtle cross-hatch pattern */
+.card-back::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(148, 163, 184, .12);
+  border-radius: 3px;
+}
+
+.card-back__icon {
+  font-size: 18px;
+  opacity: .15;
+  color: #94a3b8;
+}
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .battle-divider {
