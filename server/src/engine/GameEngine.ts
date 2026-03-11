@@ -5,7 +5,6 @@ import {
   CardInstance,
   CardTemplate,
   ArtifactCard,
-  SpellCard,
   DeckDefinition,
   PlayerState,
   StatusEffectInstance,
@@ -20,14 +19,12 @@ function buildInstance(template: CardTemplate, ownerId: string): CardInstance {
   let hp = 0, attack = 0, cooldown = 0;
 
   if (template.type === 'hero' || template.type === 'creature') {
-    hp       = template.baseStats.hp;
-    attack   = template.baseStats.attack;
-    cooldown = template.baseStats.cooldown;
-  } else if (template.type === 'artifact') {
-    cooldown = (template as ArtifactCard).baseStats.cooldown;
-  } else if (template.type === 'spell') {
-    cooldown = (template as SpellCard).cooldown;
+    hp     = template.baseStats.hp;
+    attack = template.baseStats.attack;
   }
+
+  // All cards get a random initial cooldown of 3–7 (ignores template value)
+  cooldown = Math.floor(Math.random() * 5) + 3;
 
   return {
     instanceId:    uuidv4(),
@@ -126,19 +123,17 @@ export class GameEngine {
       return buildInstance(template, deck.ownerId);
     });
 
-    // Hero stays at index 0 (always drawn first); shuffle the rest (Fisher-Yates)
-    const hero = instances[0];
-    const rest  = instances.slice(1);
-    for (let i = rest.length - 1; i > 0; i--) {
+    // Full Fisher-Yates shuffle — hero has no special draw priority
+    for (let i = instances.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [rest[i], rest[j]] = [rest[j], rest[i]];
+      [instances[i], instances[j]] = [instances[j], instances[i]];
     }
 
     return {
       playerId:    deck.ownerId,
       displayName: deck.ownerId,
       hp:          30,
-      deck:        [hero, ...rest],
+      deck:        instances,
       hand:        [],
       field:       [],
       graveyard:   [],
