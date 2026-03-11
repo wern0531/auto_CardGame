@@ -88,7 +88,7 @@ export interface PlayerState {
   hp: number;                    // starts at 30
   deck: CardInstance[];
   hand: CardInstance[];          // cards waiting to deploy (ready zone)
-  field: CardInstance[];         // active battlefield, max ~6 slots
+  field: (CardInstance | null)[]; // null = empty slot (card just died, before left-shift)
   graveyard: CardInstance[];
 }
 

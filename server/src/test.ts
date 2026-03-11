@@ -68,7 +68,7 @@ while (!state.isOver && state.turn <= MAX_TURNS) {
     const p = state.players[pid];
     if (p.field.length === 0) return '(empty)';
     return p.field
-      .map(f => `${f.cardId}[${f.currentStats.hp}/${f.currentStats.maxHp}hp ${f.currentStats.attack}atk]${f.equippedArtifact ? '⚔' : ''}`)
+      .map(f => f ? `${f.cardId}[${f.currentStats.hp}/${f.currentStats.maxHp}hp ${f.currentStats.attack}atk]${f.equippedArtifact ? '⚔' : ''}` : '[ ]')
       .join('  ');
   };
 

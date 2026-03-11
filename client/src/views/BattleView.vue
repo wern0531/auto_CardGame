@@ -10,21 +10,19 @@
         <span class="grave-badge">⚰ {{ enemyPlayer?.graveyard.length ?? 0 }}</span>
       </div>
 
+      <!-- enemy field: pushed to bottom of zone via margin-top:auto -->
       <div class="field field--enemy">
-        <TransitionGroup name="card-slide">
-          <CardComponent
-            v-for="card in enemyPlayer?.field ?? []"
-            :key="card.instanceId"
-            :card="card"
-          />
-        </TransitionGroup>
-        <div v-if="!enemyPlayer?.field.length" class="empty-field">— empty —</div>
+        <template v-for="(card, idx) in enemyPlayer?.field ?? []" :key="card?.instanceId ?? `e-slot-${idx}`">
+          <CardComponent v-if="card !== null" :card="card" />
+          <div v-else class="field-placeholder" />
+        </template>
+        <div v-if="enemyFieldEmpty" class="empty-field">— empty —</div>
       </div>
     </section>
 
     <!-- ── Divider / turn info ───────────────────────────────────────────── -->
     <div class="battle-divider">
-      <span class="phase-badge">Turn {{ battleState.turn }}  ·  {{ battleState.phase.toUpperCase() }}</span>
+      <span class="phase-badge">Turn {{ battleState.turn }} · {{ battleState.phase.toUpperCase() }}</span>
       <span class="active-badge">Active: {{ battleState.activePlayerId }}</span>
       <Transition name="fade">
         <span v-if="battleState.isOver" class="winner-banner">
@@ -35,23 +33,23 @@
 
     <!-- ── My zone (bottom) ─────────────────────────────────────────────── -->
     <section class="battle-zone battle-zone--me">
+      <!-- my field: sits at the top of zone, right below the divider -->
       <div class="field field--me">
-        <TransitionGroup name="card-slide">
-          <CardComponent
-            v-for="card in myPlayer?.field ?? []"
-            :key="card.instanceId"
-            :card="card"
-          />
-        </TransitionGroup>
-        <div v-if="!myPlayer?.field.length" class="empty-field">— empty —</div>
+        <template v-for="(card, idx) in myPlayer?.field ?? []" :key="card?.instanceId ?? `m-slot-${idx}`">
+          <CardComponent v-if="card !== null" :card="card" />
+          <div v-else class="field-placeholder" />
+        </template>
+        <div v-if="myFieldEmpty" class="empty-field">— empty —</div>
       </div>
 
       <div class="player-bar player-bar--me">
-        <span class="player-name">{{ myPlayerId ?? '—' }}</span>
-        <span class="player-hp">❤ {{ myPlayer?.hp ?? 0 }}</span>
-        <span class="grave-badge">⚰ {{ myPlayer?.graveyard.length ?? 0 }}</span>
+        <div class="player-bar__info">
+          <span class="player-name">{{ myPlayerId ?? '—' }}</span>
+          <span class="player-hp">❤ {{ myPlayer?.hp ?? 0 }}</span>
+          <span class="grave-badge">⚰ {{ myPlayer?.graveyard.length ?? 0 }}</span>
+        </div>
 
-        <!-- Hand cards (visible for me) -->
+        <!-- Hand cards (visible for me only) -->
         <div class="hand-area">
           <CardComponent
             v-for="card in myPlayer?.hand ?? []"
@@ -121,6 +119,10 @@ const enemyPlayer = computed(() =>
     : null
 );
 
+// field 可能含 null，需過濾才算「是否有卡」
+const myFieldEmpty    = computed(() => !(myPlayer.value?.field ?? []).some(f => f !== null));
+const enemyFieldEmpty = computed(() => !(enemyPlayer.value?.field ?? []).some(f => f !== null));
+
 // Latest 10 entries, newest first
 const recentLogs = computed(() =>
   battleState.value ? [...battleState.value.log].slice(-10).reverse() : []
@@ -140,55 +142,95 @@ function logClass(entry: BattleLogEntry) {
 .battle-page {
   display: grid;
   grid-template-columns: 1fr 220px;
-  grid-template-rows: 1fr 44px 1fr;
+  grid-template-rows: 1fr 28px 1fr;
   grid-template-areas:
-    "enemy  log"
+    "enemy   log"
     "divider log"
-    "me     log";
+    "me      log";
   height: 100vh;
   background: #0d0d1a;
   color: #e2e8f0;
   overflow: hidden;
 }
 
-.battle-zone       { display: flex; flex-direction: column; padding: 12px 16px; gap: 10px; }
-.battle-zone--enemy { grid-area: enemy;   background: #111827; border-bottom: 1px solid #1f2937; }
-.battle-zone--me    { grid-area: me;      background: #0f172a; }
+/* ── Zones ───────────────────────────────────────────────────────────────── */
+.battle-zone {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+.battle-zone--enemy {
+  grid-area: enemy;
+  background: #111827;
+  /* push field to the bottom so it sits right above the divider */
+  justify-content: space-between;
+}
+
+.battle-zone--me {
+  grid-area: me;
+  background: #0f172a;
+  /* field at top (naturally), player-bar pushed to bottom */
+  justify-content: space-between;
+}
 
 /* ── Player bar ──────────────────────────────────────────────────────────── */
 .player-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 13px;
+  flex-shrink: 0;
 }
 
-.player-bar--me { flex-direction: column; align-items: flex-start; }
+.player-bar--me {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.player-bar__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .player-name { font-weight: 700; font-size: 14px; color: #f1f5f9; }
 .player-hp   { color: #f87171; font-weight: 600; }
 .hand-badge  { background: #1e3a5f; border-radius: 4px; padding: 1px 6px; font-size: 11px; }
 .grave-badge { color: #94a3b8; font-size: 11px; }
 
-/* ── Field ───────────────────────────────────────────────────────────────── */
+/* ── Fields ──────────────────────────────────────────────────────────────── */
 .field {
   display: flex;
   flex-direction: row;
-  gap: 10px;
-  flex-wrap: nowrap;
+  justify-content: flex-start; /* index 0 always on the left for both sides */
   align-items: center;
-  min-height: 100px;
-  padding: 8px;
-  background: rgba(255,255,255,.03);
-  border-radius: 8px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-height: 108px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
   border: 1px dashed #1f2937;
   overflow-x: auto;
+  flex-shrink: 0;
 }
 
-.field--enemy { flex-direction: row-reverse; } /* enemy reads right-to-left visually */
+/* Placeholder keeps the column width so cards don't jump before left-shift */
+.field-placeholder {
+  min-width: 110px;
+  max-width: 130px;
+  min-height: 90px;
+  border-radius: 8px;
+  border: 1px dashed #1f2937;
+  opacity: 0.25;
+  flex-shrink: 0;
+}
 
 .empty-field {
-  color: #4b5563;
+  color: #374151;
   font-size: 12px;
   margin: auto;
 }
@@ -198,10 +240,9 @@ function logClass(entry: BattleLogEntry) {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 4px 0;
 }
 
-.hand-card { opacity: .85; transform: scale(.9); }
+.hand-card  { opacity: .8; transform: scale(.88); transform-origin: bottom center; }
 .hand-empty { font-size: 11px; color: #4b5563; }
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
@@ -210,23 +251,23 @@ function logClass(entry: BattleLogEntry) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  background: #1e293b;
-  border-top: 1px solid #334155;
-  border-bottom: 1px solid #334155;
-  padding: 0 16px;
-  font-size: 12px;
+  gap: 14px;
+  background: #0d0d1a;
+  border-top: 1px solid #1f2937;
+  border-bottom: 1px solid #1f2937;
+  padding: 0 14px;
+  font-size: 11px;
 }
 
-.phase-badge  { background: #1e3a5f; border-radius: 4px; padding: 2px 8px; color: #93c5fd; }
-.active-badge { color: #94a3b8; }
+.phase-badge  { background: #1e3a5f; border-radius: 4px; padding: 1px 7px; color: #93c5fd; }
+.active-badge { color: #6b7280; }
 .winner-banner {
-  font-size: 1rem;
+  font-size: .9rem;
   font-weight: 700;
   color: #fbbf24;
-  background: rgba(0,0,0,.4);
+  background: rgba(0,0,0,.5);
   border-radius: 6px;
-  padding: 4px 14px;
+  padding: 2px 12px;
 }
 
 /* ── Battle Log ──────────────────────────────────────────────────────────── */
@@ -240,12 +281,12 @@ function logClass(entry: BattleLogEntry) {
 }
 
 .log-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: #64748b;
+  color: #4b5563;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 10px 12px 6px;
+  padding: 8px 12px 6px;
   margin: 0;
   border-bottom: 1px solid #1f2937;
 }
@@ -253,7 +294,7 @@ function logClass(entry: BattleLogEntry) {
 .log-list {
   list-style: none;
   margin: 0;
-  padding: 6px 0;
+  padding: 4px 0;
   overflow-y: auto;
   flex: 1;
   font-size: 11px;
@@ -263,29 +304,26 @@ function logClass(entry: BattleLogEntry) {
 .log-entry {
   padding: 3px 12px;
   border-left: 2px solid transparent;
-  color: #94a3b8;
+  color: #6b7280;
 }
+
 .log--attack { border-color: #ef4444; color: #fca5a5; }
 .log--direct { border-color: #f97316; color: #fed7aa; }
 .log--deploy { border-color: #22c55e; color: #bbf7d0; }
-.log--death  { border-color: #6b7280; color: #9ca3af; }
+.log--death  { border-color: #374151; color: #6b7280; font-style: italic; }
 
-.log-turn {
-  font-size: 9px;
-  color: #4b5563;
-  margin-right: 4px;
-}
+.log-turn { font-size: 9px; color: #374151; margin-right: 4px; }
 
 /* ── Transitions ─────────────────────────────────────────────────────────── */
 .card-slide-enter-active,
-.card-slide-leave-active { transition: all .4s ease; }
-.card-slide-enter-from   { opacity: 0; transform: translateY(-20px); }
-.card-slide-leave-to     { opacity: 0; transform: translateY(20px); }
+.card-slide-leave-active { transition: all .35s ease; }
+.card-slide-enter-from   { opacity: 0; transform: translateY(-16px) scale(.9); }
+.card-slide-leave-to     { opacity: 0; transform: translateY(16px)  scale(.9); }
 
-.log-slide-enter-active { transition: all .3s ease; }
-.log-slide-enter-from   { opacity: 0; transform: translateX(20px); }
+.log-slide-enter-active { transition: all .25s ease; }
+.log-slide-enter-from   { opacity: 0; transform: translateX(16px); }
 
-.fade-enter-active, .fade-leave-active { transition: opacity .5s; }
+.fade-enter-active, .fade-leave-active { transition: opacity .4s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
 
 /* ── Waiting screen ──────────────────────────────────────────────────────── */

@@ -198,11 +198,13 @@ export class GameEngine {
       }
 
       if (card.type === 'hero' || card.type === 'creature') {
-        if (ap.field.length >= MAX_FIELD_SIZE) {
+        // field is compact after left-shift, but count non-nulls defensively
+        const unitCount = ap.field.filter(f => f !== null).length;
+        if (unitCount >= MAX_FIELD_SIZE) {
           pending.push(card); // field full, stay in hand
           continue;
         }
-        const pos     = ap.field.length;
+        const pos      = ap.field.length; // compact → length = next index
         const deployed = { ...card, currentZone: 'field' as const, position: pos };
         ap.field = [...ap.field, deployed];
 
@@ -213,7 +215,7 @@ export class GameEngine {
 
       } else if (card.type === 'artifact') {
         const targetIdx = ap.field.findIndex(
-          f => !f.equippedArtifact && (f.type === 'hero' || f.type === 'creature'),
+          f => f !== null && !f.equippedArtifact && (f.type === 'hero' || f.type === 'creature'),
         );
 
         if (targetIdx === -1) {
@@ -223,7 +225,7 @@ export class GameEngine {
         }
 
         const tpl    = this.templates[card.cardId] as ArtifactCard;
-        const host   = ap.field[targetIdx];
+        const host   = ap.field[targetIdx] as CardInstance; // non-null: findIndex confirmed
         const artifact: CardInstance = { ...card, currentZone: 'field' as const, position: host.position };
         const buffed: CardInstance = {
           ...host,
@@ -263,33 +265,56 @@ export class GameEngine {
 
   private phaseAction(state: BattleState): BattleState {
     let s = { ...state, phase: GamePhase.ACTION };
-    const eid   = enemyId(s);
-    const ap    = s.players[s.activePlayerId];
-    let enemy   = { ...s.players[eid] };
+    const eid = enemyId(s);
+    const ap  = s.players[s.activePlayerId];
+    let enemy = { ...s.players[eid] };
 
     for (let i = 0; i < ap.field.length; i++) {
       const attacker = ap.field[i];
-      const dmg      = attacker.currentStats.attack;
-      const target   = enemy.field[i];
+      if (!attacker) continue; // skip null (empty) slots
+
+      const dmg    = attacker.currentStats.attack;
+      const target = enemy.field[i]; // CardInstance | null | undefined
 
       if (target) {
-        // Normal attack: damage same-index enemy unit
+        // ── Normal attack ──────────────────────────────────────────────────
         const hit: CardInstance = {
           ...target,
           currentStats: { ...target.currentStats, hp: target.currentStats.hp - dmg },
         };
-        enemy = {
-          ...enemy,
-          field: enemy.field.map((f, idx) => idx === i ? hit : f),
-        };
+
         s = appendLog(s, GamePhase.ACTION, {
           actorId: attacker.instanceId, targetId: target.instanceId,
           effect: 'attack', value: dmg,
           message: `[ACTION] "${attacker.cardId}" attacks "${target.cardId}" for ${dmg} dmg  (enemy hp: ${hit.currentStats.hp}/${hit.currentStats.maxHp})`,
         });
 
+        if (hit.currentStats.hp <= 0) {
+          // ── Instant death: slot → null, card → graveyard ─────────────────
+          s = appendLog(s, GamePhase.ACTION, {
+            actorId: null, targetId: target.instanceId, effect: 'death', value: 0,
+            message: `[ACTION] "${target.cardId}" is destroyed`,
+          });
+          enemy = {
+            ...enemy,
+            graveyard: [
+              ...enemy.graveyard,
+              { ...hit, currentZone: 'graveyard' as const, equippedArtifact: undefined },
+              ...(hit.equippedArtifact
+                ? [{ ...hit.equippedArtifact, currentZone: 'graveyard' as const }]
+                : []),
+            ],
+            field: enemy.field.map((f, idx) => idx === i ? null : f),
+          };
+        } else {
+          enemy = {
+            ...enemy,
+            field: enemy.field.map((f, idx) => idx === i ? hit : f),
+          };
+        }
+
       } else {
-        // Direct damage: no unit at this index → hit enemy player
+        // ── Direct damage: null slot or beyond enemy field length ──────────
         enemy = { ...enemy, hp: enemy.hp - dmg };
         s = appendLog(s, GamePhase.ACTION, {
           actorId: attacker.instanceId, targetId: null,
@@ -311,19 +336,23 @@ export class GameEngine {
     for (const pid of Object.keys(s.players)) {
       let player = { ...s.players[pid] };
 
-      // ── Step A: tick status effects ────────────────────────────────────────
-      player.field = player.field.map(card => {
-        let c = { ...card };
+      // ── Step A: tick status effects; instant death → slot becomes null ─────
+      const newField: (CardInstance | null)[] = [];
+
+      for (const slot of player.field) {
+        if (!slot) { newField.push(null); continue; } // propagate existing nulls
+
+        let c = { ...slot };
         const remaining: StatusEffectInstance[] = [];
 
-        for (const status of card.activeStatuses) {
+        for (const status of slot.activeStatuses) {
           if (status.type === StatusEffect.BURN || status.type === StatusEffect.POISON) {
             c = { ...c, currentStats: { ...c.currentStats, hp: c.currentStats.hp - status.value } };
             s = appendLog(s, GamePhase.RESOLUTION, {
-              actorId: null, targetId: card.instanceId,
+              actorId: null, targetId: slot.instanceId,
               effect: status.type === StatusEffect.BURN ? SkillEffect.STATUS_BURN : SkillEffect.STATUS_POISON,
               value:   status.value,
-              message: `[RESOLUTION] "${card.cardId}" takes ${status.value} ${status.type} damage`,
+              message: `[RESOLUTION] "${slot.cardId}" takes ${status.value} ${status.type} damage`,
             });
           }
           if (status.remainingTurns - 1 > 0) {
@@ -331,29 +360,34 @@ export class GameEngine {
           }
         }
 
-        return { ...c, activeStatuses: remaining };
-      });
+        c = { ...c, activeStatuses: remaining };
 
-      // ── Step B: remove dead units → graveyard ─────────────────────────────
-      const alive = player.field.filter(c => c.currentStats.hp > 0);
-      const dead  = player.field.filter(c => c.currentStats.hp <= 0);
-
-      for (const d of dead) {
-        s = appendLog(s, GamePhase.RESOLUTION, {
-          actorId: null, targetId: d.instanceId, effect: 'death', value: 0,
-          message: `[RESOLUTION] "${d.cardId}" is destroyed`,
-        });
-        player.graveyard = [
-          ...player.graveyard,
-          { ...d, currentZone: 'graveyard', equippedArtifact: undefined },
-          ...(d.equippedArtifact
-            ? [{ ...d.equippedArtifact, currentZone: 'graveyard' as const }]
-            : []),
-        ];
+        if (c.currentStats.hp <= 0) {
+          // instant death from status damage
+          s = appendLog(s, GamePhase.RESOLUTION, {
+            actorId: null, targetId: c.instanceId, effect: 'death', value: 0,
+            message: `[RESOLUTION] "${c.cardId}" is destroyed by status damage`,
+          });
+          player.graveyard = [
+            ...player.graveyard,
+            { ...c, currentZone: 'graveyard' as const, equippedArtifact: undefined },
+            ...(c.equippedArtifact
+              ? [{ ...c.equippedArtifact, currentZone: 'graveyard' as const }]
+              : []),
+          ];
+          newField.push(null); // leave slot empty until left-shift
+        } else {
+          newField.push(c);
+        }
       }
 
-      // ── Step C: left-shift – compact field, reassign positions ─────────────
-      player.field = alive.map((card, idx) => ({ ...card, position: idx }));
+      player.field = newField;
+
+      // ── Step B is removed: deaths are handled inline above ─────────────────
+
+      // ── Step C: left-shift – filter nulls, reassign positions ──────────────
+      player.field = (player.field.filter(f => f !== null) as CardInstance[])
+        .map((card, idx) => ({ ...card, position: idx }));
 
       s = { ...s, players: { ...s.players, [pid]: player } };
     }
