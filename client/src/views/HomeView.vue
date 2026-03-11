@@ -1,23 +1,23 @@
 <template>
   <div class="home">
     <h1 class="title">⚔ Auto Battle Card Game</h1>
-    <p class="subtitle">Choose your mode</p>
+    <p class="subtitle">選擇模式</p>
 
     <div class="menu">
       <button class="btn btn--campaign" @click="playCampaign" :disabled="loading">
         <span class="btn__icon">🗺</span>
-        <span class="btn__label">Campaign</span>
-        <span class="btn__desc">Face the CPU Boss</span>
+        <span class="btn__label">戰役</span>
+        <span class="btn__desc">挑戰 CPU 主將</span>
       </button>
 
       <button class="btn btn--arena" @click="playArena" :disabled="loading">
         <span class="btn__icon">🏆</span>
-        <span class="btn__label">Arena</span>
-        <span class="btn__desc">Challenge another player's deck</span>
+        <span class="btn__label">競技場</span>
+        <span class="btn__desc">挑戰競技場對手</span>
       </button>
     </div>
 
-    <p v-if="loading" class="status">Connecting to server...</p>
+    <p v-if="loading" class="status">連線中…</p>
     <p v-if="store.error" class="error">{{ store.error }}</p>
   </div>
 </template>

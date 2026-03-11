@@ -27,14 +27,14 @@
           <CardComponent v-if="card !== null" :card="card" />
           <div v-else class="field-placeholder" />
         </template>
-        <div v-if="enemyFieldEmpty" class="empty-field">— empty —</div>
+        <div v-if="enemyFieldEmpty" class="empty-field">— 空 —</div>
       </div>
     </section>
 
     <!-- ── Divider / turn info ───────────────────────────────────────────── -->
     <div class="battle-divider">
       <span class="phase-badge">Turn {{ battleState.turn }} · {{ battleState.phase.toUpperCase() }}</span>
-      <span class="active-badge">Active: {{ battleState.activePlayerId }}</span>
+      <span class="active-badge">行動：{{ battleState.activePlayerId }}</span>
       <Transition name="fade">
         <span v-if="battleState.isOver" class="winner-banner">
           🏆 {{ battleState.winner }} wins!
@@ -50,7 +50,7 @@
           <CardComponent v-if="card !== null" :card="card" />
           <div v-else class="field-placeholder" />
         </template>
-        <div v-if="myFieldEmpty" class="empty-field">— empty —</div>
+        <div v-if="myFieldEmpty" class="empty-field">— 空 —</div>
       </div>
 
       <div class="player-bar player-bar--me">
@@ -68,14 +68,14 @@
             :card="card"
             class="hand-card"
           />
-          <span v-if="!myPlayer?.hand.length" class="hand-empty">No cards in hand</span>
+          <span v-if="!myPlayer?.hand.length" class="hand-empty">手牌為空</span>
         </div>
       </div>
     </section>
 
     <!-- ── Battle Log (right panel) ─────────────────────────────────────── -->
     <aside class="battle-log">
-      <h3 class="log-title">Battle Log</h3>
+      <h3 class="log-title">戰鬥記錄</h3>
       <ul class="log-list">
         <TransitionGroup name="log-slide">
           <li
@@ -96,8 +96,8 @@
   <!-- waiting state -->
   <div v-else class="waiting">
     <div class="spinner" />
-    <p>Waiting for battle data…</p>
-    <RouterLink to="/" class="back-link">← Back to menu</RouterLink>
+    <p>等待戰鬥資料…</p>
+    <RouterLink to="/" class="back-link">← 返回選單</RouterLink>
   </div>
 </template>
 

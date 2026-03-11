@@ -6,7 +6,7 @@
     <!-- ── Card face content ─────────────────────────────────────────────── -->
     <div class="card__header">
       <span class="card__name">{{ displayName }}</span>
-      <span class="card__type-badge">{{ card.type }}</span>
+      <span class="card__type-badge">{{ typeLabel }}</span>
     </div>
 
     <div class="card__stats">
@@ -66,6 +66,11 @@ const templateMap = Object.fromEntries(
 );
 
 const displayName  = computed(() => templateMap[props.card.cardId]?.name ?? props.card.cardId);
+
+const typeLabels: Record<string, string> = {
+  hero: '主將', creature: '生物', artifact: '裝備', spell: '法術',
+};
+const typeLabel = computed(() => typeLabels[props.card.type] ?? props.card.type);
 const artifactName = computed(() =>
   props.card.equippedArtifact
     ? (templateMap[props.card.equippedArtifact.cardId]?.name ?? props.card.equippedArtifact.cardId)
