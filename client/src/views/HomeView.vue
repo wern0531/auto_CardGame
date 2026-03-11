@@ -4,10 +4,10 @@
     <p class="subtitle">選擇模式</p>
 
     <div class="menu">
-      <button class="btn btn--campaign" @click="playCampaign" :disabled="loading">
+      <button class="btn btn--campaign" @click="playCampaign">
         <span class="btn__icon">🗺</span>
         <span class="btn__label">戰役</span>
-        <span class="btn__desc">挑戰 CPU 主將</span>
+        <span class="btn__desc">組牌 → 挑戰 CPU 主將</span>
       </button>
 
       <button class="btn btn--arena" @click="playArena" :disabled="loading">
@@ -24,37 +24,38 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useBattleStore } from '../stores/battle';
 import type { DeckDefinition } from '@auto-battle/shared';
 
+const router  = useRouter();
 const store   = useBattleStore();
 const loading = ref(false);
 
-// Test deck – hero_blue_001 has deckLimit:9 → 1 hero + 9 cards = 10 total
-const myDeck: DeckDefinition = {
+// Arena fallback deck (used until arena also gets a deck builder)
+const arenaFallbackDeck: DeckDefinition = {
   ownerId: 'Player1',
   heroCardId: 'hero_blue_001',
   cardIds: [
-    'creature_red_001',     // Fire Imp
-    'creature_red_002',     // Shadow Blade (cd0, fast deploy)
-    'creature_blue_001',    // Frost Archer
-    'creature_blue_002',    // Venom Stalker
-    'creature_green_001',   // Iron Golem (tank)
-    'artifact_neutral_001', // Iron Shield
-    'artifact_neutral_002', // Power Gem
-    'spell_red_001',        // Fireball
-    'spell_blue_001',       // Healing Rain
+    'creature_red_001',
+    'creature_red_002',
+    'creature_red_003',
+    'creature_blue_002',
+    'creature_green_001',
+    'artifact_neutral_001',
+    'artifact_neutral_002',
+    'spell_red_002',
+    'spell_blue_001',
   ],
 };
 
 function playCampaign() {
-  loading.value = true;
-  store.startCampaign(myDeck);
+  router.push('/deck');
 }
 
 function playArena() {
   loading.value = true;
-  store.startArena(myDeck);
+  store.startArena(arenaFallbackDeck);
 }
 </script>
 
