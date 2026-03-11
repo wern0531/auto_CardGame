@@ -562,16 +562,38 @@ export class GameEngine {
 
     for (const skill of matched) {
       for (const eff of skill.effects) {
+        const loopCount = eff.count ?? 1;
 
-        // Collect target references from the CURRENT s
-        const targetRefs = resolveTargets(s, actor, eff.target as SkillTarget);
+        for (let ci = 0; ci < loopCount; ci++) {
+          // Re-resolve each iteration so ENEMY_RANDOM re-randomises per hit
+          const targetRefs = resolveTargets(s, actor, eff.target as SkillTarget);
 
-        for (const ref of targetRefs) {
-          // Re-fetch live version (a previous effect may have already killed this card)
-          const live = findCardInField(s, ref.instanceId, ref.ownerId);
-          if (!live) continue;
+          // ENEMY_RANDOM + DAMAGE with no field targets → direct damage to enemy player
+          if (
+            (eff.target as string) === SkillTarget.ENEMY_RANDOM &&
+            (eff.effect  as string) === SkillEffect.DAMAGE &&
+            targetRefs.length === 0
+          ) {
+            const eid   = Object.keys(s.players).find(id => id !== actor.ownerId)!;
+            const enemy = s.players[eid];
+            const newHp = Math.max(0, enemy.hp - eff.value);
+            s = { ...s, players: { ...s.players, [eid]: { ...enemy, hp: newHp } } };
+            s = appendLog(s, s.phase, {
+              actorId: actor.instanceId, targetId: null,
+              effect: 'direct_damage', value: eff.value,
+              message: `[技能] 「${actor.cardId}」發動『${skill.name}』：直擊敵方玩家造成 ${eff.value} 點傷害（血量：${newHp}）`,
+            });
+            s = checkWin(s);
+            if (s.isOver) return s;
+            continue;
+          }
 
-          switch (eff.effect as SkillEffect) {
+          for (const ref of targetRefs) {
+            // Re-fetch live version (a previous effect may have already killed this card)
+            const live = findCardInField(s, ref.instanceId, ref.ownerId);
+            if (!live) continue;
+
+            switch (eff.effect as SkillEffect) {
 
             // ── Attack buff ───────────────────────────────────────────────
             case SkillEffect.BUFF_ATK: {
@@ -683,7 +705,8 @@ export class GameEngine {
             default:
               break;
           }
-        }
+          }     // for (const ref of targetRefs)
+        }       // for (let ci = 0; ci < loopCount; ci++)
       }
     }
 

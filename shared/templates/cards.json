@@ -152,5 +152,44 @@
         "effects": [{ "effect": "heal", "value": 3, "target": "ally_all" }]
       }
     ]
+  },
+  {
+    "cardId": "creature_red_003",
+    "name": "吸血刺客",
+    "faction": "red",
+    "rarity": "epic",
+    "type": "creature",
+    "description": "吸取敵人的生命，將傷害轉化為自身血量。",
+    "baseStats": { "hp": 3, "attack": 1, "cooldown": 1 },
+    "skills": [
+      {
+        "skillId": "skill_vampire_attack",
+        "name": "吸血",
+        "trigger": "on_attack",
+        "effects": [
+          { "effect": "damage", "value": 3, "target": "enemy_random" },
+          { "effect": "heal",   "value": 3, "target": "self" }
+        ]
+      }
+    ]
+  },
+  {
+    "cardId": "spell_red_002",
+    "name": "雙重火球",
+    "faction": "red",
+    "rarity": "epic",
+    "type": "spell",
+    "cooldown": 3,
+    "description": "連續兩顆火球，隨機落在敵方戰場上。",
+    "skills": [
+      {
+        "skillId": "skill_double_fireball",
+        "name": "雙重火球",
+        "trigger": "on_spell_cast",
+        "effects": [
+          { "effect": "damage", "value": 5, "target": "enemy_random", "count": 2 }
+        ]
+      }
+    ]
   }
 ]

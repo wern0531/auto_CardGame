@@ -6,6 +6,7 @@ export interface SkillEffectEntry {
   effect: SkillEffect;
   value: number;           // damage/heal/buff amount, or duration for status effects
   target: SkillTarget;
+  count?: number;          // repeat this effect N times (default 1)
 }
 
 export interface Skill {
