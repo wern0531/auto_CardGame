@@ -1,12 +1,14 @@
 <template>
   <div class="deck-builder">
 
-    <!-- ═══════════════════════ LEFT PANE — Formation ═══════════════════════ -->
+    <!-- ═══════════════════════════ LEFT PANE ═══════════════════════════════ -->
     <div class="left-pane">
 
-      <!-- ── A · Squad strip (independent scroll) ──────────────────────────── -->
-      <div class="squad-strip">
-        <div class="squad-grid-scroll">
+      <!-- ── 上半截 (80%) ─────────────────────────────────────────────────── -->
+      <div class="top-half">
+
+        <!-- A 區：左側 70% — 牌組清單，3 欄固定高 100px，獨立滾動 -->
+        <div class="area-a-squads">
           <div
             v-for="(squad, idx) in playerStore.squads"
             :key="idx"
@@ -16,107 +18,98 @@
             @click="playerStore.setActiveSquad(idx)"
           >
             <span class="squad-thumb-icon">{{ heroIconOf(squad.heroCardId) }}</span>
+            <span class="squad-thumb-hero">{{ heroNameOf(squad.heroCardId) }}</span>
             <span class="squad-thumb-num">#{{ idx + 1 }}</span>
           </div>
 
-          <!-- + button lives inside the same grid, always last -->
-          <div class="add-squad-btn" title="New Squad" @click="playerStore.createNewSquad()">＋</div>
-        </div>
-      </div>
-
-      <!-- ── B + C area ──────────────────────────────────────────────────────── -->
-      <div class="bc-area">
-
-        <!-- Empty state: no squad selected -->
-        <div v-if="playerStore.activeSquadIndex === -1" class="no-squad-state">
-          <span class="no-squad-icon">🃏</span>
-          <p>請先新增或選擇一副牌組</p>
-          <p class="no-squad-hint">點擊上方的「＋」新增牌組</p>
+          <!-- + 號永遠在最後 -->
+          <div class="add-squad-btn" title="New Squad" @click="playerStore.createNewSquad()">
+            <span class="add-squad-plus">＋</span>
+            <span class="add-squad-label">New Squad</span>
+          </div>
         </div>
 
-        <template v-else>
-          <!-- B · Hero display -->
-          <div class="hero-display">
-            <template v-if="playerStore.heroTemplate">
-              <div class="hero-card-frame">
-                <div class="hero-card-scaler">
-                  <CardComponent :card="toPreview(playerStore.heroTemplate)" />
-                </div>
-              </div>
-              <div class="hero-meta">
-                <div class="hero-meta-name">
-                  <span class="faction-badge" :class="`faction--${playerStore.heroTemplate.faction}`">
-                    {{ playerStore.heroTemplate.faction.toUpperCase() }}
-                  </span>
-                  <span class="hero-name-text">{{ playerStore.heroTemplate.name }}</span>
-                </div>
-                <div class="quota-row">
-                  <span class="quota-tag quota--creature">⚔ {{ playerStore.heroTemplate.squadSlots.creature }}</span>
-                  <span class="quota-tag quota--artifact">🛡 {{ playerStore.heroTemplate.squadSlots.artifact }}</span>
-                  <span class="quota-tag quota--spell">☄ {{ playerStore.heroTemplate.squadSlots.spell }}</span>
-                </div>
-                <div class="hero-btns">
-                  <button
-                    class="btn-danger"
-                    @click="playerStore.deleteSquad(playerStore.activeSquadIndex)"
-                  >Delete Squad</button>
-                </div>
-              </div>
-            </template>
+        <!-- B 區：右側 30% — 英雄卡 + 操作按鈕 -->
+        <div class="area-b-hero">
+          <template v-if="playerStore.activeSquadIndex !== -1">
 
-            <div v-else class="hero-slot-empty">
-              <span class="hero-slot-empty-icon">👑</span>
+            <!-- 英雄卡圖 -->
+            <div v-if="playerStore.heroTemplate" class="b-hero-card-frame">
+              <CardComponent :card="toPreview(playerStore.heroTemplate)" />
+            </div>
+            <div v-else class="b-empty-hero">
+              <span class="b-empty-icon">👑</span>
               <p>請選擇主將</p>
-              <p class="hero-slot-empty-hint">從右側過濾「Hero」後點擊</p>
-            </div>
-          </div>
-
-          <!-- C · Squad slots -->
-          <div class="squad-slots-area">
-            <div class="slots-header">
-              <span class="pane-label">SQUAD</span>
-              <span class="slot-count" :class="{ 'slot-count--full': filledCount >= 6 }">
-                {{ filledCount }} / 6
-              </span>
+              <p class="b-empty-hint">從右側點擊英雄卡</p>
             </div>
 
-            <div class="slots-grid">
-              <div
-                v-for="(slot, i) in sortedSquadCards"
-                :key="i"
-                class="squad-slot-cell"
-                :class="{ 'squad-slot-cell--filled': !!slot.tpl }"
-                :title="slot.tpl ? `Click to remove: ${slot.tpl.name}` : 'Empty slot'"
-                @click="slot.cardId && removeSlotCard(slot.cardId)"
-              >
-                <template v-if="slot.tpl">
-                  <div class="slot-card-scaler">
-                    <CardComponent :card="toPreview(slot.tpl)" />
-                  </div>
-                  <div class="slot-remove-overlay">✕</div>
-                </template>
-                <div v-else class="slot-empty-cell">
-                  <span class="slot-empty-ph">＋</span>
-                </div>
+            <!-- 配額資訊 (有英雄時才顯示) -->
+            <div v-if="playerStore.heroTemplate" class="b-hero-meta">
+              <div class="b-hero-name-row">
+                <span class="faction-badge" :class="`faction--${playerStore.heroTemplate.faction}`">
+                  {{ playerStore.heroTemplate.faction.toUpperCase() }}
+                </span>
+                <span class="b-hero-name">{{ playerStore.heroTemplate.name }}</span>
+              </div>
+              <div class="quota-row">
+                <span class="quota-tag quota--creature">⚔ {{ playerStore.heroTemplate.squadSlots.creature }}</span>
+                <span class="quota-tag quota--artifact">🛡 {{ playerStore.heroTemplate.squadSlots.artifact }}</span>
+                <span class="quota-tag quota--spell">☄ {{ playerStore.heroTemplate.squadSlots.spell }}</span>
               </div>
             </div>
 
-            <!-- Actions -->
-            <div class="slot-actions">
+            <!-- 操作按鈕 — 放在 B 區底部 -->
+            <div class="b-actions">
               <Transition name="fade">
-                <span v-if="errorMsg" class="error-msg">⚠ {{ errorMsg }}</span>
+                <span v-if="errorMsg" class="error-msg-b">⚠ {{ errorMsg }}</span>
               </Transition>
-              <button class="btn-clear" :disabled="!hasDeckContent" @click="clearDeck">清空</button>
+              <div class="b-btn-row">
+                <button class="btn-clear" :disabled="!hasDeckContent" @click="clearDeck">清空</button>
+                <button
+                  class="btn-fight"
+                  :disabled="!playerStore.isDeckValid() || loading"
+                  @click="startBattle"
+                >{{ loading ? '連線中…' : '出戰 ▶' }}</button>
+              </div>
               <button
-                class="btn-fight"
-                :disabled="!playerStore.isDeckValid() || loading"
-                @click="startBattle"
-              >{{ loading ? '連線中…' : '出戰 ▶' }}</button>
+                class="btn-delete-squad"
+                @click="playerStore.deleteSquad(playerStore.activeSquadIndex)"
+              >Delete Squad</button>
             </div>
-          </div>
-        </template>
 
-      </div><!-- /bc-area -->
+          </template>
+
+          <!-- 沒有選中牌組時 -->
+          <div v-else class="b-empty-hero">
+            <span class="b-empty-icon">🃏</span>
+            <p>請先新增</p>
+            <p>或選擇牌組</p>
+          </div>
+        </div>
+
+      </div><!-- /top-half -->
+
+      <!-- ── 下半截 C 區 (20%) — 1 排 6 格隊伍槽位 ─────────────────────── -->
+      <div class="area-c-slots">
+        <div
+          v-for="(slot, i) in sortedSquadCards"
+          :key="i"
+          class="c-slot"
+          :class="{ 'c-slot--filled': !!slot.tpl }"
+          :title="slot.tpl ? `Click to remove: ${slot.tpl.name}` : 'Empty slot'"
+          @click="slot.cardId && removeSlotCard(slot.cardId)"
+        >
+          <template v-if="slot.tpl">
+            <div class="c-slot-card-frame">
+              <CardComponent :card="toPreview(slot.tpl)" />
+            </div>
+            <div class="c-slot-remove-overlay">✕</div>
+          </template>
+          <div v-else class="c-slot-empty">
+            <span class="c-slot-ph">＋</span>
+          </div>
+        </div>
+      </div><!-- /area-c-slots -->
 
     </div><!-- /left-pane -->
 
@@ -319,6 +312,11 @@ function heroIconOf(heroCardId: string): string {
   return hero ? (FACTION_ICONS[hero.faction] ?? '👑') : '?';
 }
 
+function heroNameOf(heroCardId: string): string {
+  if (!heroCardId) return '—';
+  return playerStore.collection.find(t => t.cardId === heroCardId)?.name ?? '—';
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 function onClickCard(tpl: CardTemplate) {
@@ -361,7 +359,7 @@ function startBattle() {
 </script>
 
 <style scoped>
-/* ── Root ───────────────────────────────────────────────────────────────────── */
+/* ── Root ─────────────────────────────────────────────────────────────────── */
 .deck-builder {
   display: flex;
   flex-direction: row;
@@ -372,143 +370,177 @@ function startBattle() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LEFT PANE
+   LEFT PANE — exact spec layout
    ═══════════════════════════════════════════════════════════════════════════ */
 .left-pane {
+  flex: 0 0 50%;
   width: 50%;
-  overflow: hidden;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: 16px;
-  gap: 12px;
+  gap: 16px;
   box-sizing: border-box;
 }
 
-/* ── A · Squad strip ─────────────────────────────────────────────────────── */
-.squad-strip {
-  flex: 0 0 120px;
-  overflow-y: auto;
-  padding-right: 4px; /* space for scrollbar */
+/* ── 上半截 (80%) ──────────────────────────────────────────────────────────── */
+.top-half {
+  flex: 0 0 calc(80% - 8px);
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
 }
 
-/* Custom dark scrollbar */
-.squad-strip::-webkit-scrollbar        { width: 4px; }
-.squad-strip::-webkit-scrollbar-track  { background: transparent; }
-.squad-strip::-webkit-scrollbar-thumb  { background: #334155; border-radius: 2px; }
-.squad-strip::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-.squad-grid-scroll {
+/* A 區：左 70%，3 欄固定 100px 列，獨立滾動 */
+.area-a-squads {
+  flex: 0 0 calc(70% - 8px);
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 100px;
+  gap: 10px;
+  overflow-y: auto;
   align-content: start;
 }
 
+/* Custom dark scrollbar for A */
+.area-a-squads::-webkit-scrollbar        { width: 4px; }
+.area-a-squads::-webkit-scrollbar-track  { background: transparent; }
+.area-a-squads::-webkit-scrollbar-thumb  { background: #334155; border-radius: 2px; }
+.area-a-squads::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Squad thumb */
 .squad-thumb {
-  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   border: 1px solid #1e293b;
   border-radius: 8px;
   background: rgba(255,255,255,0.03);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+  padding: 6px 4px;
 }
-.squad-thumb:hover { border-color: #334155; background: rgba(255,255,255,0.06); }
+.squad-thumb:hover {
+  border-color: #475569;
+  background: rgba(255,255,255,0.06);
+}
 .squad-thumb--active {
   border-color: #b8922a;
-  background: rgba(184,146,42,0.1);
-  box-shadow: 0 0 8px rgba(184,146,42,0.2);
+  background: rgba(184,146,42,0.12);
+  box-shadow: inset 0 0 0 1px rgba(184,146,42,0.3);
 }
-.squad-thumb-icon { font-size: 1.3rem; }
-.squad-thumb-num  { font-size: 9px; color: #6b7280; }
+.squad-thumb-icon { font-size: 1.6rem; }
+.squad-thumb-hero {
+  font-size: 9px;
+  color: #94a3b8;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  padding: 0 4px;
+}
+.squad-thumb-num { font-size: 9px; color: #4b5563; }
 
+/* + 新增按鈕（同 grid 內） */
 .add-squad-btn {
-  aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   border: 1px dashed #334155;
   border-radius: 8px;
   background: transparent;
-  color: #4b5563;
-  font-size: 1.5rem;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   user-select: none;
 }
-.add-squad-btn:hover { color: #94a3b8; border-color: #475569; background: rgba(255,255,255,0.04); }
-
-/* ── B + C area ──────────────────────────────────────────────────────────── */
-.bc-area {
-  flex: 1;
-  display: flex;
-  gap: 16px;
-  min-height: 0;
+.add-squad-btn:hover {
+  border-color: #60a5fa;
+  background: rgba(96,165,250,0.06);
 }
+.add-squad-plus  { font-size: 1.6rem; color: #4b5563; transition: color 0.15s; }
+.add-squad-label { font-size: 9px;    color: #4b5563; transition: color 0.15s; }
+.add-squad-btn:hover .add-squad-plus,
+.add-squad-btn:hover .add-squad-label { color: #93c5fd; }
 
-/* Empty state */
-.no-squad-state {
-  flex: 1;
+/* B 區：右 30%，英雄卡 + 操作 */
+.area-b-hero {
+  flex: 0 0 calc(30% - 8px);
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 2px dashed #1e293b;
-  border-radius: 12px;
-  color: #374151;
-  text-align: center;
-}
-.no-squad-icon { font-size: 2.5rem; opacity: 0.4; }
-.no-squad-state p { margin: 0; font-size: 13px; color: #4b5563; }
-.no-squad-hint { font-size: 11px; color: #374151 !important; }
-
-/* ── B · Hero display ────────────────────────────────────────────────────── */
-.hero-display {
-  flex: 0 0 40%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
+  gap: 8px;
+  overflow: hidden;
 }
 
-.hero-card-frame {
+/* Hero card: fills B area width, clips vertically */
+.b-hero-card-frame {
   flex: 1;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   overflow: hidden;
   min-height: 0;
 }
-.hero-card-scaler {
-  transform: scale(0.85);
-  transform-origin: top center;
-  flex-shrink: 0;
+/* Force the CardComponent to fill the B width */
+.b-hero-card-frame :deep(> *) {
+  width: 100% !important;
+  max-width: none !important;
 }
 
-.hero-meta {
-  flex-shrink: 0;
+/* Empty hero placeholder inside B */
+.b-empty-hero {
+  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid #1e293b;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed #1e293b;
   border-radius: 8px;
+  background: rgba(255,255,255,0.01);
+  text-align: center;
 }
-.hero-meta-name { display: flex; align-items: center; gap: 6px; }
-.hero-name-text { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+.b-empty-icon { font-size: 2rem; opacity: 0.3; }
+.b-empty-hero p { margin: 0; font-size: 11px; color: #4b5563; }
+.b-empty-hint   { font-size: 10px; color: #374151 !important; }
+
+/* Hero meta info */
+.b-hero-meta {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.b-hero-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.b-hero-name { font-size: 12px; font-weight: 700; color: #f1f5f9; }
 
 .faction-badge {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: 3px;
   flex-shrink: 0;
 }
 .faction--red     { background: rgba(153,27,27,0.4);  color: #fca5a5; }
@@ -516,172 +548,145 @@ function startBattle() {
 .faction--green   { background: rgba(6,78,59,0.4);    color: #6ee7b7; }
 .faction--neutral { background: rgba(55,65,81,0.4);   color: #9ca3af; }
 
-.quota-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.quota-row { display: flex; gap: 4px; flex-wrap: wrap; }
 .quota-tag {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 5px;
+  padding: 2px 5px;
+  border-radius: 4px;
 }
 .quota--creature { background: rgba(37,99,235,0.18);  color: #93c5fd; border: 1px solid #1e40af; }
 .quota--artifact { background: rgba(180,83,9,0.18);   color: #fde68a; border: 1px solid #92400e; }
 .quota--spell    { background: rgba(5,150,105,0.18);  color: #6ee7b7; border: 1px solid #065f46; }
 
-.hero-btns { display: flex; gap: 6px; }
-.btn-danger {
-  padding: 5px 10px;
-  border: 1px solid #7f1d1d;
-  border-radius: 6px;
-  background: transparent;
-  color: #f87171;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btn-danger:hover { background: rgba(239,68,68,0.12); }
-
-/* Empty hero slot */
-.hero-slot-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 2px dashed #1e293b;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.02);
-  color: #374151;
-  text-align: center;
-}
-.hero-slot-empty-icon { font-size: 2rem; opacity: 0.35; }
-.hero-slot-empty p { margin: 0; font-size: 12px; color: #4b5563; }
-.hero-slot-empty-hint { font-size: 10px; color: #374151 !important; }
-
-/* ── C · Squad slots ─────────────────────────────────────────────────────── */
-.squad-slots-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-
-.slots-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.pane-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: #4b5563;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-.slot-count       { font-size: 11px; color: #6b7280; font-weight: 600; }
-.slot-count--full { color: #f87171; }
-
-.slots-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  align-content: start;
-  min-height: 0;
-}
-
-/* Slot cell wrapper */
-.squad-slot-cell {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  background: rgba(255,255,255,0.02);
-  border: 1px dashed #1e293b;
-  transition: border-color 0.15s;
-  min-height: 80px;
-  display: flex;
-  align-items: stretch;
-}
-.squad-slot-cell--filled {
-  border-style: solid;
-  border-color: #334155;
-  cursor: pointer;
-}
-.squad-slot-cell--filled:hover { border-color: #ef4444; }
-.squad-slot-cell--filled:hover .slot-remove-overlay { opacity: 1; }
-
-/* Card scaled inside slot */
-.slot-card-scaler {
-  transform: scale(0.72);
-  transform-origin: top center;
+/* B area action buttons */
+.b-actions {
   flex-shrink: 0;
   width: 100%;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
 }
-
-/* Remove overlay on hover */
-.slot-remove-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(239,68,68,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
+.error-msg-b {
+  font-size: 10px;
   color: #fca5a5;
-  opacity: 0;
-  transition: opacity 0.15s;
+  text-align: center;
+  word-break: break-word;
 }
-
-/* Empty slot */
-.slot-empty-cell {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.slot-empty-ph { font-size: 1.2rem; color: #1e293b; }
-
-/* Slot actions row */
-.slot-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.error-msg { flex: 1; font-size: 11px; color: #fca5a5; }
+.b-btn-row { display: flex; gap: 5px; }
 
 .btn-clear {
-  padding: 7px 12px;
+  flex: 1;
+  padding: 6px 4px;
   border: 1px solid #1f2937;
   border-radius: 6px;
   background: transparent;
   color: #6b7280;
-  font-size: 11px;
+  font-size: 10px;
   cursor: pointer;
-  white-space: nowrap;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .btn-clear:hover:not(:disabled) { border-color: #ef4444; color: #f87171; }
 .btn-clear:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .btn-fight {
-  padding: 8px 20px;
+  flex: 2;
+  padding: 6px 4px;
   background: linear-gradient(135deg, #1e3a5f, #2563eb);
   border: none;
   border-radius: 6px;
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
+  transition: opacity 0.15s;
   white-space: nowrap;
-  transition: opacity 0.15s, transform 0.15s;
 }
-.btn-fight:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.btn-fight:hover:not(:disabled) { opacity: 0.85; }
 .btn-fight:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-delete-squad {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  background: transparent;
+  color: #f87171;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-delete-squad:hover { background: rgba(239,68,68,0.1); }
+
+/* ── 下半截 C 區 (20%) — 1 排 6 格 ─────────────────────────────────────── */
+.area-c-slots {
+  flex: 0 0 calc(20% - 8px);
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+/* Individual C slot */
+.c-slot {
+  height: 100%;
+  border: 1px dashed #1e293b;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  background: rgba(255,255,255,0.02);
+  transition: border-color 0.15s;
+}
+.c-slot--filled {
+  border-style: solid;
+  border-color: #334155;
+  cursor: pointer;
+}
+.c-slot--filled:hover { border-color: #ef4444; }
+.c-slot--filled:hover .c-slot-remove-overlay { opacity: 1; }
+
+/* Card inside C slot: fills width, clips height */
+.c-slot-card-frame {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+}
+.c-slot-card-frame :deep(> *) {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Remove overlay */
+.c-slot-remove-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(239,68,68,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #fca5a5;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* Empty C slot */
+.c-slot-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.c-slot-ph { font-size: 1rem; color: #1e293b; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RIGHT PANE — unchanged
