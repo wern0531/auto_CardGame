@@ -22,23 +22,22 @@ export const usePlayerStore = defineStore('player', () => {
   /** Full card library (every template = player owns it for testing). */
   const collection = ref<CardTemplate[]>(allTemplates);
 
-  /** All saved squads. At least one always exists. */
-  const squads = ref<DeckDefinition[]>([emptyDeck()]);
+  /** All saved squads. Starts empty to simulate new-player state. */
+  const squads = ref<DeckDefinition[]>([]);
 
-  /** Which squad is currently being edited. */
-  const activeSquadIndex = ref(0);
+  /** Index of the squad currently being edited. -1 = none selected. */
+  const activeSquadIndex = ref(-1);
 
   // ── Computed ────────────────────────────────────────────────────────────────
 
-  const activeSquad = computed<DeckDefinition>(() => squads.value[activeSquadIndex.value]);
+  const activeSquad = computed<DeckDefinition | undefined>(
+    () => squads.value[activeSquadIndex.value],
+  );
 
   const heroTemplate = computed<HeroCard | null>(() => {
-    if (!activeSquad.value?.heroCardId) return null;
-    return (
-      (allTemplates.find(
-        t => t.cardId === activeSquad.value.heroCardId && t.type === 'hero',
-      ) as HeroCard) ?? null
-    );
+    const heroId = activeSquad.value?.heroCardId;
+    if (!heroId) return null;
+    return (allTemplates.find(t => t.cardId === heroId && t.type === 'hero') as HeroCard) ?? null;
   });
 
   // ── Squad management ────────────────────────────────────────────────────────
@@ -55,9 +54,10 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function deleteSquad(idx: number) {
-    if (squads.value.length <= 1) return;
     squads.value.splice(idx, 1);
-    if (activeSquadIndex.value >= squads.value.length) {
+    if (squads.value.length === 0) {
+      activeSquadIndex.value = -1;
+    } else if (activeSquadIndex.value >= squads.value.length) {
       activeSquadIndex.value = squads.value.length - 1;
     }
   }
@@ -66,13 +66,17 @@ export const usePlayerStore = defineStore('player', () => {
 
   /** Select a hero. Resets cardIds because squadSlots may differ. */
   function setHero(cardId: string) {
-    activeSquad.value.heroCardId = cardId;
-    activeSquad.value.cardIds    = [];
+    const squad = activeSquad.value;
+    if (!squad) return;
+    squad.heroCardId = cardId;
+    squad.cardIds    = [];
   }
 
   /** Add a non-hero card. Returns {ok, reason} so the UI can surface errors. */
   function addCardToDeck(cardId: string): { ok: boolean; reason?: string } {
     const squad = activeSquad.value;
+    if (!squad)
+      return { ok: false, reason: '請先選擇牌組' };
 
     if (!squad.heroCardId)
       return { ok: false, reason: '請先選擇主將' };
@@ -110,13 +114,13 @@ export const usePlayerStore = defineStore('player', () => {
 
   /** Remove card at deck index. */
   function removeCardFromDeck(index: number) {
-    activeSquad.value.cardIds.splice(index, 1);
+    activeSquad.value?.cardIds.splice(index, 1);
   }
 
   /** True when the squad has a hero and at least one non-hero card. */
   function isDeckValid(): boolean {
     const squad = activeSquad.value;
-    return !!squad.heroCardId && squad.cardIds.length >= 1;
+    return !!squad?.heroCardId && (squad.cardIds.length ?? 0) >= 1;
   }
 
   return {

@@ -1,116 +1,126 @@
 <template>
   <div class="deck-builder">
 
-    <!-- ═══════════════ LEFT PANE — Formation ═══════════════ -->
+    <!-- ═══════════════════════ LEFT PANE — Formation ═══════════════════════ -->
     <div class="left-pane">
 
-      <!-- ── Top row: A (squad list) + B/C (hero details) ─────────────────── -->
-      <div class="top-row">
-
-        <!-- A · Squad thumbnails -->
-        <div class="squad-list">
-          <div class="pane-label">SQUADS</div>
-          <div class="squad-entries">
-            <div
-              v-for="(squad, idx) in playerStore.squads"
-              :key="idx"
-              class="squad-thumb"
-              :class="{ 'squad-thumb--active': playerStore.activeSquadIndex === idx }"
-              :title="`Squad ${idx + 1}`"
-              @click="playerStore.setActiveSquad(idx)"
-            >
-              <span class="squad-thumb-icon">{{ heroIconOf(squad.heroCardId) }}</span>
-              <span class="squad-thumb-num">{{ idx + 1 }}</span>
-            </div>
-          </div>
-          <button class="btn-add-squad" @click="playerStore.createNewSquad()" title="New Squad">＋</button>
-        </div>
-
-        <!-- B/C · Hero details + quota tags + actions -->
-        <div class="hero-details">
-          <template v-if="playerStore.heroTemplate">
-            <div class="hero-header">
-              <span class="faction-badge" :class="`faction--${playerStore.heroTemplate.faction}`">
-                {{ playerStore.heroTemplate.faction.toUpperCase() }}
-              </span>
-              <span class="hero-name">{{ playerStore.heroTemplate.name }}</span>
-            </div>
-            <div class="hero-stats">
-              <span class="stat-chip">❤ {{ playerStore.heroTemplate.baseStats.hp }}</span>
-              <span class="stat-chip">⚔ {{ playerStore.heroTemplate.baseStats.attack }}</span>
-              <span class="stat-chip">⏱ CD {{ playerStore.heroTemplate.baseStats.cooldown }}</span>
-            </div>
-            <div class="quota-row">
-              <span class="quota-tag quota--creature">⚔ {{ playerStore.heroTemplate.squadSlots.creature }} Creature</span>
-              <span class="quota-tag quota--artifact">🛡 {{ playerStore.heroTemplate.squadSlots.artifact }} Artifact</span>
-              <span class="quota-tag quota--spell">☄ {{ playerStore.heroTemplate.squadSlots.spell }} Spell</span>
-            </div>
-            <div class="hero-actions">
-              <button class="btn-secondary" title="功能開發中">Edit Squad</button>
-              <button
-                class="btn-danger"
-                :disabled="playerStore.squads.length <= 1"
-                @click="playerStore.deleteSquad(playerStore.activeSquadIndex)"
-              >Delete</button>
-            </div>
-          </template>
-
-          <div v-else class="hero-empty">
-            <span class="hero-empty-icon">👑</span>
-            <p>No hero selected</p>
-            <p class="hero-empty-hint">Filter "Hero" in the card library →</p>
-          </div>
-        </div>
-
-      </div><!-- /top-row -->
-
-      <!-- ── D · 6-slot squad grid ──────────────────────────────────────────── -->
-      <div class="slot-section">
-        <div class="slot-section-header">
-          <span class="pane-label">SQUAD FORMATION</span>
-          <span class="slot-count" :class="{ 'slot-count--full': filledCount >= 6 }">
-            {{ filledCount }} / 6
-          </span>
-        </div>
-
-        <div class="slot-grid">
+      <!-- ── A · Squad strip (independent scroll) ──────────────────────────── -->
+      <div class="squad-strip">
+        <div class="squad-grid-scroll">
           <div
-            v-for="(slot, idx) in slotsWithCards"
+            v-for="(squad, idx) in playerStore.squads"
             :key="idx"
-            class="squad-slot"
-            :class="[`squad-slot--${slot.type}`, { 'squad-slot--filled': !!slot.cardId }]"
-            :title="slot.cardId ? `Remove: ${nameOf(slot.cardId)}` : `Empty ${typeLabel(slot.type)} slot`"
-            @click="slot.cardId && removeCardBySlot(slot)"
+            class="squad-thumb"
+            :class="{ 'squad-thumb--active': playerStore.activeSquadIndex === idx }"
+            :title="`Squad ${idx + 1}`"
+            @click="playerStore.setActiveSquad(idx)"
           >
-            <template v-if="slot.cardId">
-              <span class="slot-type-tag" :class="`type--${slot.type}`">{{ typeLabel(slot.type) }}</span>
-              <span class="slot-card-name">{{ nameOf(slot.cardId) }}</span>
-              <span class="slot-remove">✕</span>
-            </template>
-            <template v-else>
-              <span class="slot-ph-icon">{{ typeIcon(slot.type) }}</span>
-              <span class="slot-ph-label">{{ typeLabel(slot.type) }}</span>
-            </template>
+            <span class="squad-thumb-icon">{{ heroIconOf(squad.heroCardId) }}</span>
+            <span class="squad-thumb-num">#{{ idx + 1 }}</span>
           </div>
-        </div>
 
-        <!-- Actions row -->
-        <div class="slot-actions">
-          <Transition name="fade">
-            <span v-if="errorMsg" class="error-msg">⚠ {{ errorMsg }}</span>
-          </Transition>
-          <button class="btn-clear" :disabled="!hasDeckContent" @click="clearDeck">清空</button>
-          <button
-            class="btn-fight"
-            :disabled="!playerStore.isDeckValid() || loading"
-            @click="startBattle"
-          >{{ loading ? '連線中…' : '出戰 ▶' }}</button>
+          <!-- + button lives inside the same grid, always last -->
+          <div class="add-squad-btn" title="New Squad" @click="playerStore.createNewSquad()">＋</div>
         </div>
       </div>
 
+      <!-- ── B + C area ──────────────────────────────────────────────────────── -->
+      <div class="bc-area">
+
+        <!-- Empty state: no squad selected -->
+        <div v-if="playerStore.activeSquadIndex === -1" class="no-squad-state">
+          <span class="no-squad-icon">🃏</span>
+          <p>請先新增或選擇一副牌組</p>
+          <p class="no-squad-hint">點擊上方的「＋」新增牌組</p>
+        </div>
+
+        <template v-else>
+          <!-- B · Hero display -->
+          <div class="hero-display">
+            <template v-if="playerStore.heroTemplate">
+              <div class="hero-card-frame">
+                <div class="hero-card-scaler">
+                  <CardComponent :card="toPreview(playerStore.heroTemplate)" />
+                </div>
+              </div>
+              <div class="hero-meta">
+                <div class="hero-meta-name">
+                  <span class="faction-badge" :class="`faction--${playerStore.heroTemplate.faction}`">
+                    {{ playerStore.heroTemplate.faction.toUpperCase() }}
+                  </span>
+                  <span class="hero-name-text">{{ playerStore.heroTemplate.name }}</span>
+                </div>
+                <div class="quota-row">
+                  <span class="quota-tag quota--creature">⚔ {{ playerStore.heroTemplate.squadSlots.creature }}</span>
+                  <span class="quota-tag quota--artifact">🛡 {{ playerStore.heroTemplate.squadSlots.artifact }}</span>
+                  <span class="quota-tag quota--spell">☄ {{ playerStore.heroTemplate.squadSlots.spell }}</span>
+                </div>
+                <div class="hero-btns">
+                  <button
+                    class="btn-danger"
+                    @click="playerStore.deleteSquad(playerStore.activeSquadIndex)"
+                  >Delete Squad</button>
+                </div>
+              </div>
+            </template>
+
+            <div v-else class="hero-slot-empty">
+              <span class="hero-slot-empty-icon">👑</span>
+              <p>請選擇主將</p>
+              <p class="hero-slot-empty-hint">從右側過濾「Hero」後點擊</p>
+            </div>
+          </div>
+
+          <!-- C · Squad slots -->
+          <div class="squad-slots-area">
+            <div class="slots-header">
+              <span class="pane-label">SQUAD</span>
+              <span class="slot-count" :class="{ 'slot-count--full': filledCount >= 6 }">
+                {{ filledCount }} / 6
+              </span>
+            </div>
+
+            <div class="slots-grid">
+              <div
+                v-for="(slot, i) in sortedSquadCards"
+                :key="i"
+                class="squad-slot-cell"
+                :class="{ 'squad-slot-cell--filled': !!slot.tpl }"
+                :title="slot.tpl ? `Click to remove: ${slot.tpl.name}` : 'Empty slot'"
+                @click="slot.cardId && removeSlotCard(slot.cardId)"
+              >
+                <template v-if="slot.tpl">
+                  <div class="slot-card-scaler">
+                    <CardComponent :card="toPreview(slot.tpl)" />
+                  </div>
+                  <div class="slot-remove-overlay">✕</div>
+                </template>
+                <div v-else class="slot-empty-cell">
+                  <span class="slot-empty-ph">＋</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="slot-actions">
+              <Transition name="fade">
+                <span v-if="errorMsg" class="error-msg">⚠ {{ errorMsg }}</span>
+              </Transition>
+              <button class="btn-clear" :disabled="!hasDeckContent" @click="clearDeck">清空</button>
+              <button
+                class="btn-fight"
+                :disabled="!playerStore.isDeckValid() || loading"
+                @click="startBattle"
+              >{{ loading ? '連線中…' : '出戰 ▶' }}</button>
+            </div>
+          </div>
+        </template>
+
+      </div><!-- /bc-area -->
+
     </div><!-- /left-pane -->
 
-    <!-- ═══════════════ RIGHT PANE — Card Library ════════════════ -->
+    <!-- ═══════════════════════ RIGHT PANE — Card Library ══════════════════════ -->
     <div class="right-pane">
 
       <!-- Filter bar (fixed) -->
@@ -143,7 +153,7 @@
           class="card-grid-slot"
           :class="{
             'card-grid-slot--maxed': isMaxed(tpl),
-            'card-grid-slot--selected-hero': tpl.type === 'hero' && tpl.cardId === playerStore.activeSquad.heroCardId,
+            'card-grid-slot--selected-hero': tpl.type === 'hero' && tpl.cardId === playerStore.activeSquad?.heroCardId,
           }"
           :title="slotHint(tpl)"
           @click="onClickCard(tpl)"
@@ -154,7 +164,7 @@
             class="copy-badge"
           >×{{ copyCount(tpl.cardId) }}</div>
           <div
-            v-if="tpl.type === 'hero' && tpl.cardId === playerStore.activeSquad.heroCardId"
+            v-if="tpl.type === 'hero' && tpl.cardId === playerStore.activeSquad?.heroCardId"
             class="active-hero-badge"
           >✓ Active</div>
         </div>
@@ -178,8 +188,7 @@ const battleStore = useBattleStore();
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_COPIES  = 2;
-const TOTAL_SLOTS = 6;
+const MAX_COPIES = 2;
 
 const FACTIONS = [
   { id: 'all',     label: 'All' },
@@ -200,12 +209,10 @@ const TYPES = [
 const TYPE_LABELS: Record<string, string> = {
   creature: 'Creature', artifact: 'Artifact', spell: 'Spell', hero: 'Hero',
 };
-const TYPE_ICONS: Record<string, string> = {
-  creature: '⚔', artifact: '🛡', spell: '☄', hero: '👑',
-};
 const FACTION_ICONS: Record<string, string> = {
   red: '🔥', blue: '❄', green: '🌿', neutral: '⚪',
 };
+const TYPE_ORDER: Record<string, number> = { creature: 0, artifact: 1, spell: 2 };
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -225,37 +232,31 @@ const filteredCollection = computed(() =>
 );
 
 const hasDeckContent = computed(() =>
-  !!playerStore.activeSquad.heroCardId || playerStore.activeSquad.cardIds.length > 0,
+  !!playerStore.activeSquad?.heroCardId || (playerStore.activeSquad?.cardIds.length ?? 0) > 0,
 );
 
-const filledCount = computed(() => playerStore.activeSquad.cardIds.length);
+const filledCount = computed(() => playerStore.activeSquad?.cardIds.length ?? 0);
 
-/** 6 typed slot definitions based on the active hero's squadSlots. */
-const slotDefs = computed(() => {
-  const hero = playerStore.heroTemplate;
-  const defs: Array<{ type: 'creature' | 'artifact' | 'spell' }> = [];
-  const { creature = 6, artifact = 0, spell = 0 } = hero?.squadSlots ?? {};
-  for (let i = 0; i < creature; i++) defs.push({ type: 'creature' });
-  for (let i = 0; i < artifact; i++) defs.push({ type: 'artifact' });
-  for (let i = 0; i < spell;    i++) defs.push({ type: 'spell'    });
-  return defs;
-});
+/**
+ * Cards in the active squad sorted creature → artifact → spell,
+ * then padded with null entries to always produce exactly 6 items.
+ */
+const sortedSquadCards = computed<Array<{ tpl: CardTemplate | null; cardId: string | null }>>(() => {
+  const squad = playerStore.activeSquad;
+  if (!squad) return Array.from({ length: 6 }, () => ({ tpl: null, cardId: null }));
 
-/** Each of the 6 slots paired with the card (if any) currently filling it. */
-const slotsWithCards = computed(() => {
-  const cardIds = playerStore.activeSquad.cardIds;
-  const byType: Record<string, string[]> = { creature: [], artifact: [], spell: [] };
+  const entries = squad.cardIds
+    .map(id => {
+      const tpl = playerStore.collection.find(t => t.cardId === id);
+      return tpl && tpl.type !== 'hero' ? { tpl, cardId: id } : null;
+    })
+    .filter((x): x is { tpl: CardTemplate; cardId: string } => x !== null);
 
-  for (const cardId of cardIds) {
-    const tpl = playerStore.collection.find(t => t.cardId === cardId);
-    if (tpl && tpl.type !== 'hero') byType[tpl.type].push(cardId);
-  }
+  entries.sort((a, b) => (TYPE_ORDER[a.tpl.type] ?? 99) - (TYPE_ORDER[b.tpl.type] ?? 99));
 
-  const cursors: Record<string, number> = { creature: 0, artifact: 0, spell: 0 };
-  return slotDefs.value.map(def => ({
-    type:   def.type,
-    cardId: byType[def.type][cursors[def.type]++] ?? null,
-  }));
+  const result: Array<{ tpl: CardTemplate | null; cardId: string | null }> = [...entries];
+  while (result.length < 6) result.push({ tpl: null, cardId: null });
+  return result;
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -284,17 +285,19 @@ function toPreview(tpl: CardTemplate): CardInstance {
 }
 
 function copyCount(cardId: string): number {
-  return playerStore.activeSquad.cardIds.filter(id => id === cardId).length;
+  return playerStore.activeSquad?.cardIds.filter(id => id === cardId).length ?? 0;
 }
 
 function isMaxed(tpl: CardTemplate): boolean {
-  if (tpl.type === 'hero') return tpl.cardId === playerStore.activeSquad.heroCardId;
+  const squad = playerStore.activeSquad;
+  if (!squad) return false;
+  if (tpl.type === 'hero') return tpl.cardId === squad.heroCardId;
   if (copyCount(tpl.cardId) >= MAX_COPIES) return true;
   const hero = playerStore.heroTemplate;
   if (!hero) return false;
   const cardType = tpl.type as 'creature' | 'artifact' | 'spell';
   const slotLimit = hero.squadSlots[cardType];
-  const inDeck = playerStore.activeSquad.cardIds.filter(id => {
+  const inDeck = squad.cardIds.filter(id => {
     const t = playerStore.collection.find(x => x.cardId === id);
     return t?.type === cardType;
   }).length;
@@ -302,22 +305,12 @@ function isMaxed(tpl: CardTemplate): boolean {
 }
 
 function slotHint(tpl: CardTemplate): string {
+  const squad = playerStore.activeSquad;
+  if (!squad) return '請先選擇牌組';
   if (tpl.type === 'hero')
-    return tpl.cardId === playerStore.activeSquad.heroCardId ? '目前主將' : `選擇「${tpl.name}」為主將`;
+    return tpl.cardId === squad.heroCardId ? '目前主將' : `選擇「${tpl.name}」為主將`;
   if (isMaxed(tpl)) return '槽位已滿或已達張數上限';
   return `加入「${tpl.name}」`;
-}
-
-function nameOf(cardId: string): string {
-  return playerStore.collection.find(t => t.cardId === cardId)?.name ?? cardId;
-}
-
-function typeLabel(type: string): string {
-  return TYPE_LABELS[type] ?? type;
-}
-
-function typeIcon(type: string): string {
-  return TYPE_ICONS[type] ?? '?';
 }
 
 function heroIconOf(heroCardId: string): string {
@@ -329,6 +322,11 @@ function heroIconOf(heroCardId: string): string {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 function onClickCard(tpl: CardTemplate) {
+  if (!playerStore.activeSquad) {
+    errorMsg.value = '請先選擇牌組';
+    setTimeout(() => { errorMsg.value = ''; }, 2500);
+    return;
+  }
   if (isMaxed(tpl)) return;
   errorMsg.value = '';
   if (tpl.type === 'hero') {
@@ -342,9 +340,8 @@ function onClickCard(tpl: CardTemplate) {
   }
 }
 
-function removeCardBySlot(slot: { type: string; cardId: string | null }) {
-  if (!slot.cardId) return;
-  const idx = playerStore.activeSquad.cardIds.indexOf(slot.cardId);
+function removeSlotCard(cardId: string) {
+  const idx = playerStore.activeSquad?.cardIds.indexOf(cardId) ?? -1;
   if (idx >= 0) playerStore.removeCardFromDeck(idx);
 }
 
@@ -359,7 +356,7 @@ function startBattle() {
   }
   errorMsg.value = '';
   loading.value  = true;
-  battleStore.startCampaign(playerStore.activeSquad);
+  battleStore.startCampaign(playerStore.activeSquad!);
 }
 </script>
 
@@ -383,50 +380,37 @@ function startBattle() {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  gap: 14px;
+  gap: 12px;
   box-sizing: border-box;
 }
 
-/* ── Top Row ─────────────────────────────────────────────────────────────── */
-.top-row {
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  flex: 0 0 auto;
+/* ── A · Squad strip ─────────────────────────────────────────────────────── */
+.squad-strip {
+  flex: 0 0 120px;
+  overflow-y: auto;
+  padding-right: 4px; /* space for scrollbar */
 }
 
-/* A · Squad list */
-.squad-list {
-  flex: 0 0 80px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-}
+/* Custom dark scrollbar */
+.squad-strip::-webkit-scrollbar        { width: 4px; }
+.squad-strip::-webkit-scrollbar-track  { background: transparent; }
+.squad-strip::-webkit-scrollbar-thumb  { background: #334155; border-radius: 2px; }
+.squad-strip::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-.pane-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: #4b5563;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.squad-entries {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 100%;
+.squad-grid-scroll {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 8px;
+  align-content: start;
 }
 
 .squad-thumb {
+  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 6px 4px;
+  gap: 3px;
   border: 1px solid #1e293b;
   border-radius: 8px;
   background: rgba(255,255,255,0.03);
@@ -439,41 +423,85 @@ function startBattle() {
   background: rgba(184,146,42,0.1);
   box-shadow: 0 0 8px rgba(184,146,42,0.2);
 }
-.squad-thumb-icon { font-size: 1.2rem; }
+.squad-thumb-icon { font-size: 1.3rem; }
 .squad-thumb-num  { font-size: 9px; color: #6b7280; }
 
-.btn-add-squad {
-  margin-top: 2px;
-  width: 100%;
-  padding: 4px;
+.add-squad-btn {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px dashed #334155;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: #4b5563;
-  font-size: 1rem;
+  font-size: 1.5rem;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  user-select: none;
 }
-.btn-add-squad:hover { color: #94a3b8; border-color: #475569; }
+.add-squad-btn:hover { color: #94a3b8; border-color: #475569; background: rgba(255,255,255,0.04); }
 
-/* B/C · Hero details */
-.hero-details {
+/* ── B + C area ──────────────────────────────────────────────────────────── */
+.bc-area {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Empty state */
+.no-squad-state {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid #1e293b;
-  border-radius: 10px;
-  min-height: 160px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed #1e293b;
+  border-radius: 12px;
+  color: #374151;
+  text-align: center;
+}
+.no-squad-icon { font-size: 2.5rem; opacity: 0.4; }
+.no-squad-state p { margin: 0; font-size: 13px; color: #4b5563; }
+.no-squad-hint { font-size: 11px; color: #374151 !important; }
+
+/* ── B · Hero display ────────────────────────────────────────────────────── */
+.hero-display {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
 }
 
-.hero-header {
+.hero-card-frame {
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  min-height: 0;
 }
+.hero-card-scaler {
+  transform: scale(0.85);
+  transform-origin: top center;
+  flex-shrink: 0;
+}
+
+.hero-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+}
+.hero-meta-name { display: flex; align-items: center; gap: 6px; }
+.hero-name-text { font-size: 13px; font-weight: 700; color: #f1f5f9; }
 
 .faction-badge {
   font-size: 9px;
@@ -481,63 +509,27 @@ function startBattle() {
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 .faction--red     { background: rgba(153,27,27,0.4);  color: #fca5a5; }
 .faction--blue    { background: rgba(30,58,138,0.4);  color: #93c5fd; }
 .faction--green   { background: rgba(6,78,59,0.4);    color: #6ee7b7; }
 .faction--neutral { background: rgba(55,65,81,0.4);   color: #9ca3af; }
 
-.hero-name { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-
-.hero-stats {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.stat-chip {
-  font-size: 11px;
-  color: #94a3b8;
-  background: rgba(255,255,255,0.05);
-  padding: 2px 7px;
-  border-radius: 12px;
-  border: 1px solid #1e293b;
-}
-
-.quota-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+.quota-row { display: flex; gap: 5px; flex-wrap: wrap; }
 .quota-tag {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 5px;
 }
 .quota--creature { background: rgba(37,99,235,0.18);  color: #93c5fd; border: 1px solid #1e40af; }
 .quota--artifact { background: rgba(180,83,9,0.18);   color: #fde68a; border: 1px solid #92400e; }
 .quota--spell    { background: rgba(5,150,105,0.18);  color: #6ee7b7; border: 1px solid #065f46; }
 
-.hero-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.btn-secondary {
-  padding: 5px 12px;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 11px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.btn-secondary:hover { border-color: #60a5fa; color: #bfdbfe; }
-
+.hero-btns { display: flex; gap: 6px; }
 .btn-danger {
-  padding: 5px 12px;
+  padding: 5px 10px;
   border: 1px solid #7f1d1d;
   border-radius: 6px;
   background: transparent;
@@ -546,25 +538,28 @@ function startBattle() {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.12); }
-.btn-danger:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-danger:hover { background: rgba(239,68,68,0.12); }
 
-.hero-empty {
+/* Empty hero slot */
+.hero-slot-empty {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  border: 2px dashed #1e293b;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
   color: #374151;
   text-align: center;
 }
-.hero-empty-icon { font-size: 1.8rem; opacity: 0.4; }
-.hero-empty p { font-size: 12px; margin: 0; }
-.hero-empty-hint { font-size: 10px; color: #4b5563; }
+.hero-slot-empty-icon { font-size: 2rem; opacity: 0.35; }
+.hero-slot-empty p { margin: 0; font-size: 12px; color: #4b5563; }
+.hero-slot-empty-hint { font-size: 10px; color: #374151 !important; }
 
-/* ── D · Squad slot grid ─────────────────────────────────────────────────── */
-.slot-section {
+/* ── C · Squad slots ─────────────────────────────────────────────────────── */
+.squad-slots-area {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -572,68 +567,83 @@ function startBattle() {
   min-height: 0;
 }
 
-.slot-section-header {
+.slots-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pane-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #4b5563;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 .slot-count       { font-size: 11px; color: #6b7280; font-weight: 600; }
 .slot-count--full { color: #f87171; }
 
-.slot-grid {
+.slots-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 8px;
+  gap: 10px;
+  align-content: start;
   min-height: 0;
 }
 
-.squad-slot {
+/* Slot cell wrapper */
+.squad-slot-cell {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed #1e293b;
+  transition: border-color 0.15s;
+  min-height: 80px;
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+}
+.squad-slot-cell--filled {
+  border-style: solid;
+  border-color: #334155;
+  cursor: pointer;
+}
+.squad-slot-cell--filled:hover { border-color: #ef4444; }
+.squad-slot-cell--filled:hover .slot-remove-overlay { opacity: 1; }
+
+/* Card scaled inside slot */
+.slot-card-scaler {
+  transform: scale(0.72);
+  transform-origin: top center;
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Remove overlay on hover */
+.slot-remove-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(239,68,68,0.25);
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 6px;
-  border-radius: 8px;
-  border: 1px dashed #334155;
-  transition: border-color 0.15s, background 0.15s;
-  position: relative;
-  min-height: 64px;
-  text-align: center;
+  font-size: 1.4rem;
+  color: #fca5a5;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-/* Type-tinted empty slots */
-.squad-slot--creature { border-color: #1e40af; background: rgba(37,99,235,0.05); }
-.squad-slot--artifact { border-color: #92400e; background: rgba(180,83,9,0.05); }
-.squad-slot--spell    { border-color: #065f46; background: rgba(5,150,105,0.05); }
-
-/* Filled slots */
-.squad-slot--filled { border-style: solid; cursor: pointer; }
-.squad-slot--filled.squad-slot--creature { border-color: #2563eb; background: rgba(37,99,235,0.1); }
-.squad-slot--filled.squad-slot--artifact { border-color: #b45309; background: rgba(180,83,9,0.1); }
-.squad-slot--filled.squad-slot--spell    { border-color: #059669; background: rgba(5,150,105,0.1); }
-.squad-slot--filled:hover { background: rgba(239,68,68,0.12) !important; border-color: #ef4444 !important; }
-.squad-slot--filled:hover .slot-remove { opacity: 1; }
-
-/* Slot content */
-.slot-type-tag {
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.08);
-  font-weight: 700;
+/* Empty slot */
+.slot-empty-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.type--creature { color: #93c5fd; }
-.type--artifact { color: #fde68a; }
-.type--spell    { color: #6ee7b7; }
-
-.slot-card-name { font-size: 11px; color: #d1d5db; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.slot-remove    { font-size: 10px; color: #f87171; opacity: 0; transition: opacity 0.12s; }
-
-.slot-ph-icon  { font-size: 1.4rem; opacity: 0.25; }
-.slot-ph-label { font-size: 10px; color: #374151; }
+.slot-empty-ph { font-size: 1.2rem; color: #1e293b; }
 
 /* Slot actions row */
 .slot-actions {
@@ -674,7 +684,7 @@ function startBattle() {
 .btn-fight:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RIGHT PANE
+   RIGHT PANE — unchanged
    ═══════════════════════════════════════════════════════════════════════════ */
 .right-pane {
   width: 50%;

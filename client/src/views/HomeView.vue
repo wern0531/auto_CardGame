@@ -136,11 +136,11 @@ const battleEntries = [
 /* ── Top Banner ──────────────────────────────────────────────────────────── */
 .top-banner {
   flex-shrink: 0;
-  height: 56px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   background: #080d18;
   border-bottom: 1px solid #1e293b;
 }
@@ -152,15 +152,15 @@ const battleEntries = [
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   border: 2px solid #b8922a;
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(184,146,42,0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
 }
 
 .player-text {
