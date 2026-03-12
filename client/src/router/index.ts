@@ -9,14 +9,28 @@ const router = createRouter({
       component: () => import('../views/HomeView.vue'),
     },
     {
-      path: '/deck',
-      name: 'deck-builder',
-      component: () => import('../views/DeckBuilderView.vue'),
+      path: '/campaign',
+      name: 'campaign',
+      component: () => import('../views/CampaignMapView.vue'),
+    },
+    {
+      path: '/arena',
+      name: 'arena',
+      component: () => import('../views/ArenaView.vue'),
+    },
+    {
+      path: '/special',
+      name: 'special',
+      component: () => import('../views/SpecialMissionView.vue'),
     },
     {
       path: '/battle/:battleId',
       name: 'battle',
       component: () => import('../views/BattleView.vue'),
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
     },
   ],
 });

@@ -1,131 +1,327 @@
 <template>
-  <div class="home">
-    <h1 class="title">⚔ Auto Battle Card Game</h1>
-    <p class="subtitle">選擇模式</p>
+  <div class="hub">
 
-    <div class="menu">
-      <button class="btn btn--campaign" @click="playCampaign">
-        <span class="btn__icon">🗺</span>
-        <span class="btn__label">戰役</span>
-        <span class="btn__desc">組牌 → 挑戰 CPU 主將</span>
+    <!-- ── Top Banner ──────────────────────────────────────────────────── -->
+    <header class="top-banner">
+      <div class="player-info">
+        <div class="avatar">⚔</div>
+        <div class="player-text">
+          <span class="player-name">Player One</span>
+          <span class="player-level">Lv. 7</span>
+        </div>
+      </div>
+      <div class="resources">
+        <span class="resource">⚡ <b>50</b> / 50</span>
+        <span class="resource">💰 <b>1,240</b></span>
+      </div>
+    </header>
+
+    <!-- ── Nav Bar ─────────────────────────────────────────────────────── -->
+    <nav class="nav-bar">
+      <button
+        v-for="tab in TABS"
+        :key="tab.id"
+        class="nav-btn"
+        :class="{ 'nav-btn--active': currentTab === tab.id }"
+        @click="currentTab = tab.id"
+      >
+        <span class="nav-icon">{{ tab.icon }}</span>
+        <span class="nav-label">{{ tab.label }}</span>
       </button>
+    </nav>
 
-      <button class="btn btn--arena" @click="playArena" :disabled="loading">
-        <span class="btn__icon">🏆</span>
-        <span class="btn__label">競技場</span>
-        <span class="btn__desc">挑戰競技場對手</span>
-      </button>
-    </div>
+    <!-- ── Content Area ────────────────────────────────────────────────── -->
+    <main class="content-area">
 
-    <p v-if="loading" class="status">連線中…</p>
-    <p v-if="store.error" class="error">{{ store.error }}</p>
+      <!-- Battle Hub -->
+      <template v-if="currentTab === 'battle-hub'">
+        <div class="battle-hub">
+          <div
+            v-for="entry in battleEntries"
+            :key="entry.id"
+            class="entry-card"
+          >
+            <div class="entry-art" :style="{ background: entry.gradient }">
+              <span class="entry-art-icon">{{ entry.icon }}</span>
+            </div>
+            <div class="entry-info">
+              <h3 class="entry-title">{{ entry.title }}</h3>
+              <p class="entry-desc">{{ entry.desc }}</p>
+              <span class="entry-progress">{{ entry.progress }}</span>
+            </div>
+            <button class="btn-enter" @click="router.push(entry.route)">
+              進入<br><span>Enter</span>
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Squad (Deck Builder embedded) -->
+      <template v-else-if="currentTab === 'squad'">
+        <DeckBuilderView />
+      </template>
+
+      <!-- Other tabs -->
+      <template v-else>
+        <div class="under-construction">
+          <span class="uc-icon">🚧</span>
+          <p>{{ TABS.find(t => t.id === currentTab)?.label }} — Under Construction</p>
+          <span class="uc-sub">即將開放，敬請期待</span>
+        </div>
+      </template>
+
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useBattleStore } from '../stores/battle';
-import type { DeckDefinition } from '@auto-battle/shared';
+import DeckBuilderView from './DeckBuilderView.vue';
 
-const router  = useRouter();
-const store   = useBattleStore();
-const loading = ref(false);
+const router = useRouter();
 
-// Arena fallback deck (used until arena also gets a deck builder)
-const arenaFallbackDeck: DeckDefinition = {
-  ownerId: 'Player1',
-  heroCardId: 'hero_blue_001',
-  cardIds: [
-    'creature_red_001',
-    'creature_red_002',
-    'creature_red_003',
-    'creature_blue_002',
-    'creature_green_001',
-    'artifact_neutral_001',
-    'artifact_neutral_002',
-    'spell_red_002',
-    'spell_blue_001',
-  ],
-};
+type TabId = 'battle-hub' | 'squad' | 'defense' | 'shop';
+const currentTab = ref<TabId>('battle-hub');
 
-function playCampaign() {
-  router.push('/deck');
-}
+const TABS = [
+  { id: 'battle-hub' as TabId, icon: '⚔', label: '戰鬥 Battle' },
+  { id: 'squad'      as TabId, icon: '🃏', label: '部隊編制 Squad' },
+  { id: 'defense'    as TabId, icon: '🛡', label: '防守設定 Defense' },
+  { id: 'shop'       as TabId, icon: '🏪', label: '商城 Store' },
+];
 
-function playArena() {
-  loading.value = true;
-  store.startArena(arenaFallbackDeck);
-}
+const battleEntries = [
+  {
+    id: 'campaign',
+    icon: '🗺',
+    title: '關卡地圖 Campaign',
+    desc: '跟隨主線故事，擊敗強大敵人',
+    progress: '進度：Act 1 - 3/10 關',
+    gradient: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+    route: '/campaign',
+  },
+  {
+    id: 'arena',
+    icon: '🏆',
+    title: '競技場 Arena',
+    desc: '與其他玩家的部隊一較高下',
+    progress: '本季排名：#128',
+    gradient: 'linear-gradient(135deg, #78350f, #d97706)',
+    route: '/arena',
+  },
+  {
+    id: 'special',
+    icon: '⭐',
+    title: '特殊任務 Special',
+    desc: '限時高難度挑戰，豐厚獎勵',
+    progress: '本週任務：2/3 完成',
+    gradient: 'linear-gradient(135deg, #064e3b, #059669)',
+    route: '/special',
+  },
+];
 </script>
 
 <style scoped>
-.home {
-  min-height: 100vh;
+/* ── Root Shell ──────────────────────────────────────────────────────────── */
+.hub {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d0d1a;
+  color: #e2e8f0;
+}
+
+/* ── Top Banner ──────────────────────────────────────────────────────────── */
+.top-banner {
+  flex-shrink: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: #080d18;
+  border-bottom: 1px solid #1e293b;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border: 2px solid #b8922a;
+  border-radius: 8px;
+  background: rgba(184,146,42,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.player-text {
+  display: flex;
+  flex-direction: column;
+}
+.player-name { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+.player-level { font-size: 10px; color: #b8922a; }
+
+.resources {
+  display: flex;
+  gap: 20px;
+}
+
+.resource {
+  font-size: 13px;
+  color: #94a3b8;
+}
+.resource b { color: #e2e8f0; }
+
+/* ── Nav Bar ─────────────────────────────────────────────────────────────── */
+.nav-bar {
+  flex-shrink: 0;
+  display: flex;
+  background: #0a0f1e;
+  border-bottom: 1px solid #1e293b;
+}
+
+.nav-btn {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #0d0d1a;
-  gap: 16px;
+  gap: 3px;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  border-bottom: 2px solid transparent;
+  font-size: 11px;
 }
 
-.title {
-  font-size: 2.4rem;
-  font-weight: 800;
-  color: #e2e8f0;
-  letter-spacing: 2px;
-  margin: 0;
+.nav-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.03); }
+
+.nav-btn--active {
+  color: #f59e0b;
+  border-bottom-color: #f59e0b;
+  background: rgba(245,158,11,0.06);
 }
 
-.subtitle {
-  color: #94a3b8;
-  font-size: 1rem;
-  margin: 0;
-}
+.nav-icon  { font-size: 1.1rem; }
+.nav-label { font-size: 10px; font-weight: 600; }
 
-.menu {
+/* ── Content Area ────────────────────────────────────────────────────────── */
+.content-area {
+  flex: 1;
+  overflow: hidden;
   display: flex;
-  gap: 24px;
-  margin-top: 8px;
+  flex-direction: column;
 }
 
-.btn {
+/* ── Battle Hub ──────────────────────────────────────────────────────────── */
+.battle-hub {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.entry-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.entry-card:hover {
+  border-color: #475569;
+  background: rgba(255,255,255,0.07);
+}
+
+.entry-art {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.entry-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.entry-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.entry-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.entry-progress {
+  font-size: 11px;
+  color: #475569;
+}
+
+.btn-enter {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.4;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-enter span { font-size: 10px; opacity: 0.7; font-weight: 400; }
+.btn-enter:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── Under Construction ──────────────────────────────────────────────────── */
+.under-construction {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 24px 40px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
-  min-width: 160px;
+  justify-content: center;
+  gap: 10px;
+  color: #374151;
 }
 
-.btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+.uc-icon { font-size: 2.5rem; }
+
+.under-construction p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0;
 }
 
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-
-.btn--campaign {
-  background: linear-gradient(135deg, #4c1d95, #7c3aed);
-  color: #f5f3ff;
-  box-shadow: 0 4px 16px rgba(124,58,237,.4);
-}
-
-.btn--arena {
-  background: linear-gradient(135deg, #78350f, #d97706);
-  color: #fffbeb;
-  box-shadow: 0 4px 16px rgba(217,119,6,.4);
-}
-
-.btn__icon  { font-size: 2rem; }
-.btn__label { font-size: 1.2rem; font-weight: 700; }
-.btn__desc  { font-size: .75rem; opacity: .8; }
-
-.status { color: #60a5fa; }
-.error  { color: #f87171; }
+.uc-sub { font-size: 12px; }
 </style>

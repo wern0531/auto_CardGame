@@ -1,14 +1,73 @@
 <template>
   <div class="deck-builder">
 
-    <!-- ── 左：卡片庫 ──────────────────────────────────────────────── -->
-    <section class="collection-panel">
-
-      <div class="panel-header">
-        <h2 class="panel-title">卡片庫</h2>
-        <RouterLink to="/" class="back-link">← 返回首頁</RouterLink>
+    <!-- ── 上：當前部隊 ─────────────────────────────────────────────── -->
+    <section class="squad-section">
+      <div class="squad-header">
+        <span class="squad-label">Current Squad 當前部隊</span>
+        <span
+          class="deck-count"
+          :class="{ 'deck-count--full': playerStore.currentDeck.cardIds.length >= playerStore.deckLimit }"
+        >
+          {{ playerStore.currentDeck.cardIds.length }} / {{ playerStore.deckLimit }}
+        </span>
       </div>
 
+      <div class="squad-slots">
+        <!-- 主將槽 -->
+        <div class="hero-slot" :class="{ 'hero-slot--filled': !!playerStore.heroTemplate }">
+          <template v-if="playerStore.heroTemplate">
+            <div class="slot-card hero-card-preview">
+              <CardComponent :card="toPreview(playerStore.heroTemplate)" />
+            </div>
+          </template>
+          <div v-else class="slot-empty">
+            <span class="slot-empty__icon">👑</span>
+            <span class="slot-empty__text">選主將</span>
+          </div>
+        </div>
+
+        <div class="squad-divider"></div>
+
+        <!-- 卡片槽 -->
+        <TransitionGroup name="slot-anim" tag="div" class="card-slots">
+          <div
+            v-for="(cardId, idx) in playerStore.currentDeck.cardIds"
+            :key="`${cardId}-${idx}`"
+            class="card-slot-item"
+            :class="`type-bg--${typeOf(cardId)}`"
+            :title="`點擊移除：${nameOf(cardId)}`"
+            @click="playerStore.removeCardFromDeck(idx)"
+          >
+            <span class="slot-type-badge" :class="`type--${typeOf(cardId)}`">{{ typeLabelOf(cardId) }}</span>
+            <span class="slot-name">{{ nameOf(cardId) }}</span>
+            <span class="slot-remove">✕</span>
+          </div>
+        </TransitionGroup>
+
+        <div v-if="!playerStore.currentDeck.cardIds.length" class="slots-empty">
+          從下方卡片庫加入卡片
+        </div>
+      </div>
+
+      <!-- 操作按鈕 & 錯誤訊息 -->
+      <div class="squad-actions">
+        <Transition name="fade">
+          <span v-if="errorMsg" class="error-msg">⚠ {{ errorMsg }}</span>
+        </Transition>
+        <button class="btn-clear" @click="clearDeck" :disabled="!hasDeckContent">清空</button>
+        <button
+          class="btn-fight"
+          :disabled="!playerStore.isDeckValid() || loading"
+          @click="startBattle"
+        >
+          {{ loading ? '連線中…' : '儲存並開戰 ▶' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ── 下：卡片庫 ────────────────────────────────────────────────── -->
+    <section class="collection-section">
       <!-- 分類頁籤 -->
       <div class="tabs">
         <button
@@ -18,15 +77,16 @@
           :class="{ 'tab-btn--active': activeTab === tab.type }"
           @click="activeTab = tab.type"
         >{{ tab.label }}</button>
+        <span class="collection-label">Collection 卡片庫</span>
       </div>
 
-      <!-- 卡片格 -->
+      <!-- 卡片格 (CSS Grid) -->
       <div class="card-grid">
         <div
           v-for="tpl in filteredCollection"
           :key="tpl.cardId"
-          class="card-slot"
-          :class="{ 'card-slot--maxed': isMaxed(tpl) }"
+          class="card-grid-slot"
+          :class="{ 'card-grid-slot--maxed': isMaxed(tpl) }"
           :title="slotHint(tpl)"
           @click="onClickCard(tpl)"
         >
@@ -37,72 +97,6 @@
         </div>
         <div v-if="filteredCollection.length === 0" class="grid-empty">暫無卡片</div>
       </div>
-
-    </section>
-
-    <!-- ── 右：當前牌組 ────────────────────────────────────────────── -->
-    <section class="deck-panel">
-      <h2 class="panel-title">當前牌組</h2>
-
-      <!-- 主將預覽 -->
-      <div class="hero-area">
-        <template v-if="playerStore.heroTemplate">
-          <CardComponent :card="toPreview(playerStore.heroTemplate)" class="hero-preview" />
-          <div class="hero-info">
-            <span class="hero-name">{{ playerStore.heroTemplate.name }}</span>
-            <span
-              class="deck-count"
-              :class="{ 'deck-count--full': playerStore.currentDeck.cardIds.length >= playerStore.deckLimit }"
-            >
-              {{ playerStore.currentDeck.cardIds.length }} / {{ playerStore.deckLimit }} 張
-            </span>
-            <span class="deck-hint">點擊牌組中的卡牌可移除</span>
-          </div>
-        </template>
-        <div v-else class="hero-empty">← 在左側「主將」頁籤選擇主將</div>
-      </div>
-
-      <!-- 牌組清單 -->
-      <ul class="deck-list">
-        <TransitionGroup name="deck-slide">
-          <li
-            v-for="(cardId, idx) in playerStore.currentDeck.cardIds"
-            :key="`${cardId}-${idx}`"
-            class="deck-entry"
-            @click="playerStore.removeCardFromDeck(idx)"
-            title="點擊移除"
-          >
-            <span class="deck-entry__type" :class="`type--${typeOf(cardId)}`">
-              {{ typeLabelOf(cardId) }}
-            </span>
-            <span class="deck-entry__name">{{ nameOf(cardId) }}</span>
-            <span class="deck-entry__remove">✕</span>
-          </li>
-        </TransitionGroup>
-        <li v-if="!playerStore.currentDeck.cardIds.length" class="deck-entry--empty">
-          尚未加入任何卡片
-        </li>
-      </ul>
-
-      <!-- 錯誤提示 -->
-      <Transition name="fade">
-        <p v-if="errorMsg" class="error-msg">⚠ {{ errorMsg }}</p>
-      </Transition>
-
-      <!-- 操作按鈕 -->
-      <div class="deck-actions">
-        <button class="btn-clear" @click="clearDeck" :disabled="!hasDeckContent">
-          清空牌組
-        </button>
-        <button
-          class="btn-fight"
-          :disabled="!playerStore.isDeckValid() || loading"
-          @click="startBattle"
-        >
-          {{ loading ? '連線中…' : '儲存並前往戰鬥' }}
-        </button>
-      </div>
-
     </section>
 
   </div>
@@ -110,7 +104,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { RouterLink } from 'vue-router';
 import { usePlayerStore } from '../stores/player';
 import { useBattleStore } from '../stores/battle';
 import CardComponent from '../components/CardComponent.vue';
@@ -152,10 +145,6 @@ const hasDeckContent = computed(() =>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Convert a CardTemplate to a fake CardInstance for CardComponent preview.
- * Uses 'deck' zone so no cooldown overlay or ready-glow appears.
- */
 function toPreview(tpl: CardTemplate): CardInstance {
   let hp = 0, maxHp = 0, attack = 0, cooldown = 0;
 
@@ -166,7 +155,6 @@ function toPreview(tpl: CardTemplate): CardInstance {
     hp = tpl.baseStats.hpBonus; maxHp = Math.max(tpl.baseStats.hpBonus, 1);
     attack = tpl.baseStats.attackBonus; cooldown = tpl.baseStats.cooldown;
   } else {
-    // spell
     maxHp = 1; cooldown = tpl.cooldown;
   }
 
@@ -187,7 +175,7 @@ function copyCount(cardId: string): number {
 }
 
 function isMaxed(tpl: CardTemplate): boolean {
-  if (tpl.type === 'hero') return false; // hero selection is always available
+  if (tpl.type === 'hero') return false;
   return copyCount(tpl.cardId) >= MAX_COPIES;
 }
 
@@ -215,7 +203,6 @@ function onClickCard(tpl: CardTemplate) {
   errorMsg.value = '';
   if (tpl.type === 'hero') {
     playerStore.setHero(tpl.cardId);
-    // Auto-switch to creature tab after picking hero
     activeTab.value = 'creature';
   } else {
     const result = playerStore.addCardToDeck(tpl.cardId);
@@ -240,59 +227,204 @@ function startBattle() {
 </script>
 
 <style scoped>
-/* ── Layout ──────────────────────────────────────────────────────────────── */
+/* ── Root ────────────────────────────────────────────────────────────────── */
 .deck-builder {
   display: flex;
-  height: 100vh;
+  flex-direction: column;
+  height: 100%;
   background: #0d0d1a;
   color: #e2e8f0;
   overflow: hidden;
 }
 
-/* ── Left panel ──────────────────────────────────────────────────────────── */
-.collection-panel {
-  flex: 3;
+/* ── Upper: Squad ────────────────────────────────────────────────────────── */
+.squad-section {
+  flex-shrink: 0;
+  background: #0a0f1e;
+  border-bottom: 2px solid #b8922a;
+  box-shadow: 0 2px 12px rgba(184,146,42,0.2);
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #1f2937;
-  overflow: hidden;
+  gap: 8px;
 }
 
-.panel-header {
+.squad-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 4px;
+  gap: 10px;
+}
+
+.squad-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b8922a;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.deck-count {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+}
+.deck-count--full { color: #f87171; }
+
+/* Hero slot */
+.squad-slots {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.hero-slot {
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border: 2px solid #b8922a;
+  border-radius: 8px;
+  background: rgba(184,146,42,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-slot--filled {
+  border-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245,158,11,0.3);
+}
+
+.slot-card {
+  transform: scale(0.62);
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.slot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.slot-empty__icon { font-size: 1.4rem; }
+.slot-empty__text { font-size: 9px; color: #92400e; }
+
+.squad-divider {
+  width: 1px;
+  height: 60px;
+  background: #334155;
   flex-shrink: 0;
 }
 
-.panel-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #4b5563;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin: 0;
-}
-
-.back-link {
-  font-size: 11px;
-  color: #60a5fa;
-  text-decoration: none;
-}
-.back-link:hover { text-decoration: underline; }
-
-/* ── Tabs ────────────────────────────────────────────────────────────────── */
-.tabs {
+/* Card slots */
+.card-slots {
   display: flex;
   gap: 6px;
-  padding: 10px 18px;
+  flex-wrap: nowrap;
+}
+
+.card-slot-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.card-slot-item:hover { background: rgba(239,68,68,0.15); }
+.card-slot-item:hover .slot-remove { opacity: 1; }
+
+.slot-type-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+}
+.type--hero     { color: #c4b5fd; }
+.type--creature { color: #93c5fd; }
+.type--artifact { color: #fde68a; }
+.type--spell    { color: #6ee7b7; }
+
+.slot-name   { color: #d1d5db; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+.slot-remove { opacity: 0; color: #f87171; font-size: 9px; transition: opacity 0.12s; }
+
+.slots-empty {
+  font-size: 11px;
+  color: #374151;
+  padding: 4px 8px;
+}
+
+/* Actions row */
+.squad-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-msg {
+  flex: 1;
+  color: #fca5a5;
+  font-size: 11px;
+}
+
+.btn-clear {
+  padding: 7px 12px;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-clear:hover:not(:disabled) { border-color: #ef4444; color: #f87171; }
+.btn-clear:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-fight {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.btn-fight:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-fight:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Lower: Collection ───────────────────────────────────────────────────── */
+.collection-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
   flex-shrink: 0;
   border-bottom: 1px solid #1f2937;
 }
 
 .tab-btn {
-  padding: 5px 16px;
+  padding: 4px 14px;
   border: 1px solid #1f2937;
   border-radius: 20px;
   background: transparent;
@@ -304,25 +436,34 @@ function startBattle() {
 .tab-btn:hover { color: #e2e8f0; border-color: #374151; }
 .tab-btn--active { background: #1e3a5f; color: #93c5fd; border-color: #2563eb; }
 
-/* ── Card grid ───────────────────────────────────────────────────────────── */
+.collection-label {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Card grid with CSS Grid */
 .card-grid {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 18px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
   align-content: flex-start;
 }
 
-.card-slot {
+.card-grid-slot {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s, opacity 0.15s;
 }
-.card-slot:hover { transform: translateY(-5px); }
-.card-slot--maxed { opacity: 0.35; cursor: not-allowed; }
-.card-slot--maxed:hover { transform: none; }
+.card-grid-slot:hover { transform: translateY(-5px); }
+.card-grid-slot--maxed { opacity: 0.35; cursor: not-allowed; }
+.card-grid-slot--maxed:hover { transform: none; }
 
 .copy-badge {
   position: absolute;
@@ -341,156 +482,16 @@ function startBattle() {
 .grid-empty {
   color: #374151;
   font-size: 12px;
-  margin: auto;
-}
-
-/* ── Right panel ─────────────────────────────────────────────────────────── */
-.deck-panel {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  background: #0f172a;
-  overflow: hidden;
-}
-
-/* ── Hero area ───────────────────────────────────────────────────────────── */
-.hero-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 10px;
-  border: 1px dashed #1f2937;
-  min-height: 90px;
-  flex-shrink: 0;
-}
-
-.hero-preview {
-  flex-shrink: 0;
-  transform: scale(0.82);
-  transform-origin: left center;
-}
-
-.hero-info {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.hero-name  { font-size: 14px; font-weight: 700; color: #f1f5f9; }
-.deck-count { font-size: 13px; color: #6b7280; font-weight: 600; }
-.deck-count--full { color: #f87171; }
-.deck-hint  { font-size: 10px; color: #374151; }
-
-.hero-empty {
-  color: #374151;
-  font-size: 12px;
-  margin: auto;
+  grid-column: 1/-1;
   text-align: center;
-  line-height: 1.8;
+  padding: 24px;
 }
-
-/* ── Deck list ───────────────────────────────────────────────────────────── */
-.deck-list {
-  flex: 1;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.deck-entry {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.04);
-  cursor: pointer;
-  transition: background 0.12s;
-  font-size: 12px;
-}
-.deck-entry:hover { background: rgba(239,68,68,0.14); }
-.deck-entry:hover .deck-entry__remove { opacity: 1; }
-
-.deck-entry__type {
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.08);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.type--hero     { color: #c4b5fd; }
-.type--creature { color: #93c5fd; }
-.type--artifact { color: #fde68a; }
-.type--spell    { color: #6ee7b7; }
-
-.deck-entry__name   { flex: 1; color: #d1d5db; }
-.deck-entry__remove { opacity: 0; color: #f87171; font-size: 10px; transition: opacity 0.12s; }
-
-.deck-entry--empty {
-  list-style: none;
-  color: #374151;
-  font-size: 11px;
-  padding: 12px;
-  text-align: center;
-}
-
-/* ── Error / Actions ─────────────────────────────────────────────────────── */
-.error-msg {
-  color: #fca5a5;
-  font-size: 11px;
-  margin: 0;
-  padding: 0 2px;
-  flex-shrink: 0;
-}
-
-.deck-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.btn-clear {
-  padding: 10px 14px;
-  border: 1px solid #1f2937;
-  border-radius: 8px;
-  background: transparent;
-  color: #6b7280;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-clear:hover:not(:disabled) { border-color: #ef4444; color: #f87171; }
-.btn-clear:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.btn-fight {
-  flex: 1;
-  padding: 12px;
-  background: linear-gradient(135deg, #1e3a5f, #2563eb);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
-}
-.btn-fight:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.btn-fight:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Transitions ─────────────────────────────────────────────────────────── */
-.deck-slide-enter-active,
-.deck-slide-leave-active { transition: all 0.2s ease; }
-.deck-slide-enter-from   { opacity: 0; transform: translateX(12px); }
-.deck-slide-leave-to     { opacity: 0; transform: translateX(-12px); height: 0; padding: 0; margin: 0; }
+.slot-anim-enter-active,
+.slot-anim-leave-active { transition: all 0.2s ease; }
+.slot-anim-enter-from   { opacity: 0; transform: translateX(10px); }
+.slot-anim-leave-to     { opacity: 0; transform: translateX(-10px); }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
