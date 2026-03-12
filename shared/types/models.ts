@@ -46,7 +46,12 @@ export interface CreatureCard extends BaseCard {
 
 export interface HeroCard extends Omit<CreatureCard, 'type'> {
   type: 'hero';
-  deckLimit: number; // number of non-hero slots this hero unlocks
+  /** Per-type slot quotas. Must always sum to 6. */
+  squadSlots: {
+    creature: number;
+    artifact: number;
+    spell: number;
+  };
 }
 
 export interface ArtifactCard extends BaseCard {
@@ -123,5 +128,5 @@ export interface BattleLogEntry {
 export interface DeckDefinition {
   ownerId: string;
   heroCardId: string;
-  cardIds: string[];             // non-hero card IDs, length must equal hero.deckLimit
+  cardIds: string[];             // non-hero card IDs; max 6, respecting hero.squadSlots quotas
 }

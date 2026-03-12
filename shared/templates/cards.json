@@ -7,7 +7,7 @@
     "type": "hero",
     "description": "A fierce warlord who leads with flames.",
     "baseStats": { "hp": 20, "attack": 4, "cooldown": 0 },
-    "deckLimit": 5,
+    "squadSlots": { "creature": 5, "artifact": 1, "spell": 0 },
     "skills": [
       {
         "skillId": "skill_blaze_enter",
@@ -25,7 +25,7 @@
     "type": "hero",
     "description": "A stoic guardian of the frozen north who commands a vast army.",
     "baseStats": { "hp": 18, "attack": 3, "cooldown": 0 },
-    "deckLimit": 9,
+    "squadSlots": { "creature": 3, "artifact": 1, "spell": 2 },
     "skills": []
   },
   {
