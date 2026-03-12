@@ -13,13 +13,27 @@
             v-for="(squad, idx) in playerStore.squads"
             :key="idx"
             class="squad-thumb"
-            :class="{ 'squad-thumb--active': playerStore.activeSquadIndex === idx }"
+            :class="{
+              'squad-thumb--active':    playerStore.activeSquadIndex === idx,
+              'squad-thumb--has-image': !!heroImageOf(squad.heroCardId),
+            }"
+            :style="heroImageOf(squad.heroCardId)
+              ? { backgroundImage: `url('${heroImageOf(squad.heroCardId)}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : {}"
             :title="`Squad ${idx + 1}`"
             @click="playerStore.selectSquad(idx)"
           >
-            <span class="squad-thumb-icon">{{ heroIconOf(squad.heroCardId) }}</span>
-            <span class="squad-thumb-hero">{{ heroNameOf(squad.heroCardId) }}</span>
-            <span class="squad-thumb-num">#{{ idx + 1 }}</span>
+            <!-- 有圖片：只顯示編號，其餘由遮罩覆蓋 -->
+            <template v-if="heroImageOf(squad.heroCardId)">
+              <div class="squad-thumb-img-mask" />
+              <span class="squad-thumb-num squad-thumb-num--over-img">#{{ idx + 1 }}</span>
+            </template>
+            <!-- 無圖片：原本樣式 -->
+            <template v-else>
+              <span class="squad-thumb-icon">{{ heroIconOf(squad.heroCardId) }}</span>
+              <span class="squad-thumb-hero">{{ heroNameOf(squad.heroCardId) }}</span>
+              <span class="squad-thumb-num">#{{ idx + 1 }}</span>
+            </template>
           </div>
 
           <!-- 草稿框：僅在新增狀態（未儲存）時顯示 -->
@@ -331,6 +345,12 @@ function heroNameOf(heroCardId: string): string {
   return playerStore.collection.find(t => t.cardId === heroCardId)?.name ?? '—';
 }
 
+function heroImageOf(heroCardId: string): string | null {
+  if (!heroCardId) return null;
+  const hero = playerStore.collection.find(t => t.cardId === heroCardId);
+  return hero?.imageUrl ?? null;
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 function onClickCard(tpl: CardTemplate) {
@@ -441,6 +461,7 @@ onMounted(() => {
 
 /* Squad thumb */
 .squad-thumb {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -468,6 +489,27 @@ onMounted(() => {
   border-color: #60a5fa;
   background: rgba(96,165,250,0.08);
   box-shadow: inset 0 0 0 1px rgba(96,165,250,0.2);
+}
+
+/* Squad thumb with background image */
+.squad-thumb--has-image { position: relative; }
+
+/* Dark overlay on top of image */
+.squad-thumb-img-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.50);
+  border-radius: 7px;
+  pointer-events: none;
+}
+
+/* Number badge rendered above the mask */
+.squad-thumb-num--over-img {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
 }
 .squad-thumb-icon { font-size: 1.6rem; }
 .squad-thumb-hero {

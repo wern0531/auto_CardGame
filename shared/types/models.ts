@@ -32,6 +32,8 @@ export interface BaseCard {
   faction: 'red' | 'blue' | 'green' | 'neutral';
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   description?: string;
+  /** Optional card art URL. Recommended size: 500×700 px (5:7 ratio). */
+  imageUrl?: string;
 }
 
 export interface CreatureCard extends BaseCard {
