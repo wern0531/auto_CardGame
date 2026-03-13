@@ -187,10 +187,6 @@
             v-if="tpl.type !== 'hero' && copyCount(tpl.cardId) > 0"
             class="copy-badge"
           >×{{ copyCount(tpl.cardId) }}</div>
-          <div
-            v-if="tpl.type === 'hero' && tpl.cardId === playerStore.draftSquad?.heroCardId"
-            class="active-hero-badge"
-          >✓ Active</div>
         </div>
         <div v-if="filteredCollection.length === 0" class="grid-empty">No cards match</div>
       </div>
@@ -857,9 +853,8 @@ onMounted(() => {
 .card-grid-slot:hover { transform: translateY(-4px); }
 .card-grid-slot--maxed { opacity: 0.3; cursor: not-allowed; }
 .card-grid-slot--maxed:hover { transform: none; }
-.card-grid-slot--selected-hero {
+.card-grid-slot--selected-hero :deep(.card-wrapper) {
   box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245,158,11,0.3);
-  border-radius: 8px;
 }
 
 .copy-badge {
@@ -872,19 +867,6 @@ onMounted(() => {
   border-radius: 10px;
   padding: 2px 5px;
   pointer-events: none;
-}
-.active-hero-badge {
-  position: absolute;
-  bottom: 4px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(245,158,11,0.9);
-  color: #000;
-  font-size: 9px;
-  font-weight: 800;
-  border-radius: 4px;
-  padding: 1px 5px;
-  pointer-events: none;
-  white-space: nowrap;
 }
 
 .grid-empty {

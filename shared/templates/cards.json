@@ -5,6 +5,7 @@
     "faction": "red",
     "rarity": "legendary",
     "type": "hero",
+    "imageUrl": "/images/cards/card_001.png",
     "description": "A fierce warlord who leads with flames.",
     "baseStats": { "hp": 20, "attack": 4, "cooldown": 0 },
     "squadSlots": { "creature": 5, "artifact": 1, "spell": 0 },
@@ -41,7 +42,9 @@
         "skillId": "skill_imp_attack",
         "name": "Singe",
         "trigger": "on_attack",
-        "effects": [{ "effect": "status_burn", "value": 1, "target": "enemy_front" }]
+        "effects": [
+          { "effect": "status_burn", "value": 1, "target": "enemy_front" }
+        ]
       }
     ]
   },
@@ -68,7 +71,9 @@
         "skillId": "skill_frost_attack",
         "name": "Chill Shot",
         "trigger": "on_attack",
-        "effects": [{ "effect": "status_freeze", "value": 1, "target": "enemy_front" }]
+        "effects": [
+          { "effect": "status_freeze", "value": 1, "target": "enemy_front" }
+        ]
       }
     ]
   },
@@ -85,7 +90,9 @@
         "skillId": "skill_venom_attack",
         "name": "Toxic Bite",
         "trigger": "on_attack",
-        "effects": [{ "effect": "status_poison", "value": 2, "target": "enemy_front" }]
+        "effects": [
+          { "effect": "status_poison", "value": 2, "target": "enemy_front" }
+        ]
       }
     ]
   },
@@ -168,7 +175,7 @@
         "trigger": "on_attack",
         "effects": [
           { "effect": "damage", "value": 3, "target": "enemy_random" },
-          { "effect": "heal",   "value": 3, "target": "self" }
+          { "effect": "heal", "value": 3, "target": "self" }
         ]
       }
     ]
@@ -187,7 +194,12 @@
         "name": "雙重火球",
         "trigger": "on_spell_cast",
         "effects": [
-          { "effect": "damage", "value": 5, "target": "enemy_random", "count": 2 }
+          {
+            "effect": "damage",
+            "value": 5,
+            "target": "enemy_random",
+            "count": 2
+          }
         ]
       }
     ]
